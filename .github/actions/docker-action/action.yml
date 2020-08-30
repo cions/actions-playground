@@ -1,0 +1,21 @@
+name: "Docker Action"
+
+description: "Example Docker Action"
+
+author: "cions"
+
+inputs:
+  github-token:
+    description: "GITHUB_TOKEN"
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  output:
+    description: "Action output"
+
+runs:
+  using: docker
+  image: Dockerfile
+  args:
+  - ${{ inputs.github-token }}

@@ -1,0 +1,37 @@
+name: "Composite Run Steps Action"
+
+description: "Example Composite Run Steps Action"
+
+author: "cions"
+
+inputs:
+  github-token:
+    description: "GITHUB_TOKEN"
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  output:
+    description: "Action output"
+    value: ${{ steps.set-output.outputs.output }}
+
+runs:
+  using: composite
+  steps:
+  - name: Print environment variables
+    uses: cions/actions-playground/.github/actions/typescript-action@master
+    with:
+      action: print-envvars
+  - name: Print contexts
+    uses: cions/actions-playground/.github/actions/typescript-action@master
+    env:
+      ENV_CONTEXT: ${{ toJSON(env) }}
+      JOB_CONTEXT: ${{ toJSON(job) }}
+      STEPS_CONTEXT: ${{ toJSON(steps) }}
+      INPUTS_CONTEXT: ${{ toJSON(inputs) }}
+    with:
+      action: print-contexts
+      contexts: env,job,steps,inputs
+  - id: set-output
+    shell: bash
+    run: echo "output=Composite Run Steps Action output" >> "${GITHUB_OUTPUT}"

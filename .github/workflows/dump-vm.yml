@@ -1,0 +1,92 @@
+name: Dump Virtual Environment
+run-name: Dump Virtual Environment
+
+on: [ push, pull_request, workflow_dispatch ]
+
+permissions: {}
+
+jobs:
+  dump-vm:
+    name: Dump Virtual Environment
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+        - windows-2022
+        - windows-2019
+        - macos-13
+        - macos-12
+        - macos-11
+        - ubuntu-22.04
+        - ubuntu-20.04
+
+    steps:
+    - name: Print Runner Hardware Configuration
+      shell: node {0}
+      run: |
+        const os = require("node:os");
+
+        console.log(`Architecture: ${os.arch()}`);
+        console.log(`Platform: ${os.platform()}`);
+        console.log(`Processor: ${os.availableParallelism()}x ${os.cpus()[0].model}`);
+        console.log(`Free Memory: ${(os.freemem() / (1024 * 1024 * 1024)).toFixed(2)} GiB`);
+        console.log(`Total Memory: ${(os.totalmem() / (1024 * 1024 * 1024)).toFixed(2)} GiB`);
+    - name: Print environment variables
+      uses: cions/actions-playground/.github/actions/typescript-action@master
+      with:
+        action: print-envvars
+    - name: Print contexts
+      uses: cions/actions-playground/.github/actions/typescript-action@master
+      env:
+        RUNNER_CONTEXT: ${{ toJSON(runner) }}
+        STRATEGY_CONTEXT: ${{ toJSON(strategy) }}
+        MATRIX_CONTEXT: ${{ toJSON(matrix) }}
+      with:
+        action: print-contexts
+        contexts: runner,strategy,matrix
+    - name: List available commands
+      shell: pwsh
+      run: |
+        Write-Output "::group::Get-Command -CommandType Alias"
+        Get-Command -CommandType Alias |
+          Sort-Object -Property Source, Name |
+          Format-Table -AutoSize -Property CommandType, Name, Source |
+          Out-String -Width 4096 -Stream
+        Write-Output "::endgroup::"
+
+        Write-Output "::group::Get-Command -CommandType Function"
+        Get-Command -CommandType Function |
+          Sort-Object -Property Source, Name |
+          Format-Table -AutoSize -Property CommandType, Name, Source |
+          Out-String -Width 4096 -Stream
+        Write-Output "::endgroup::"
+
+        Write-Output "::group::Get-Command -CommandType Cmdlet"
+        Get-Command -CommandType Cmdlet |
+          Sort-Object -Property Source, Name |
+          Format-Table -AutoSize -Property CommandType, Name, Source |
+          Out-String -Width 4096 -Stream
+        Write-Output "::endgroup::"
+
+        Write-Output "::group::Get-Command -CommandType Application"
+        Get-Command -CommandType Application |
+          Sort-Object -Property Source, Name |
+          Format-Table -AutoSize -Property CommandType, Name, Source |
+          Out-String -Width 4096 -Stream
+        Write-Output "::endgroup::"
+    - name: Print Windows Information
+      if: runner.os == 'Windows'
+      run: |
+        Get-CimInstance -ClassName Win32_ComputerSystem |
+          Format-List -Property * |
+          Out-String -Width 4096 -Stream
+        Get-CimInstance -ClassName Win32_OperatingSystem |
+          Format-List -Property * |
+          Out-String -Width 4096 -Stream
+        Get-WindowsFeature |
+          Sort-Object -Property Name |
+          Format-Table -AutoSize -Property Name, InstallState |
+          Out-String -Width 4096 -Stream
