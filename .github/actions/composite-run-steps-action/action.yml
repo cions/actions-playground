@@ -1,0 +1,31 @@
+name: 'Example Composite Run Steps Action'
+description: 'Getting started with Composite Run Steps Actions'
+author: 'cions'
+inputs:
+  github-token:
+    description: 'GITHUB_TOKEN'
+    required: false
+    default: ${{ github.token }}
+outputs:
+  result:
+    description: 'Action result'
+    value: ${{ steps.set-result.outputs.result }}
+runs:
+  using: 'composite'
+  steps:
+  - name: Print Environment Variables
+    shell: bash
+    run: typeset -px
+  - name: Print github context
+    shell: bash
+    env:
+      GITHUB_CONTEXT: ${{ toJSON(github) }}
+    run: echo "${GITHUB_CONTEXT}" | jq -CS '.'
+  - name: Print inputs context
+    shell: bash
+    env:
+      INPUTS_CONTEXT: ${{ toJSON(inputs) }}
+    run: echo "${INPUTS_CONTEXT}" | jq -CS '.'
+  - id: set-result
+    shell: bash
+    run: echo "::set-output name=result::Output from a Composite Run Steps Action"

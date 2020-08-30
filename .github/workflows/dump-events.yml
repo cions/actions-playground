@@ -1,0 +1,87 @@
+name: Dump Events
+
+on:
+  check_run:
+  check_suite:
+  create:
+  delete:
+  deployment:
+  deployment_status:
+  fork:
+  gollum:
+  issue_comment:
+  issues:
+  label:
+  member:
+  milestone:
+  page_build:
+  project:
+  project_card:
+  project_column:
+  public:
+  pull_request:
+    types:
+    - assigned
+    - unassigned
+    - labeled
+    - unlabeled
+    - opened
+    - edited
+    - closed
+    - reopened
+    - synchronize
+    - ready_for_review
+    - locked
+    - unlocked
+    - review_requested
+    - review_request_removed
+  pull_request_review:
+  pull_request_review_comment:
+  pull_request_target:
+    types:
+    - assigned
+    - unassigned
+    - labeled
+    - unlabeled
+    - opened
+    - edited
+    - closed
+    - reopened
+    - synchronize
+    - ready_for_review
+    - locked
+    - unlocked
+    - review_requested
+    - review_request_removed
+  push:
+  registry_package:
+  release:
+  repository_dispatch:
+  schedule:
+  - cron: '0 0 25 * *'
+  status:
+  watch:
+  workflow_run:
+    workflows: ['Hello Actions']
+    type:
+    - completed
+    - requested
+  workflow_dispatch:
+    inputs:
+      manual-input:
+        description: 'Input for manual dispatch'
+        required: false
+        default: 'undefined'
+
+jobs:
+  dump-events:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Print environment variables
+      run: typeset -px
+    - name: Print github context
+      env:
+        GITHUB_CONTEXT: ${{ toJSON(github) }}
+      run: echo "${GITHUB_CONTEXT}" | jq -CS '.'
+    - name: Print event.json
+      run: jq -CS '.' ${{ github.event_path }}

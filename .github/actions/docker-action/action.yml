@@ -1,0 +1,16 @@
+name: 'Example Docker Action'
+description: 'Getting started with Docker Actions'
+author: 'cions'
+inputs:
+  github-token:
+    description: 'GITHUB_TOKEN'
+    required: false
+    default: ${{ github.token }}
+outputs:
+  result:
+    description: 'Action result'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+  - ${{ inputs.github-token }}
