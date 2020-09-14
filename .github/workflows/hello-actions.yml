@@ -30,19 +30,33 @@ jobs:
     - name: Print Environment Variables
       shell: pwsh
       run: |
-        $FormatEnumerationLimit = -1
-        Get-ChildItem Env: | Format-Table -AutoSize -Wrap | Out-String -Width 4096
+        Get-ChildItem Env: | Out-String -Width ([Int32]::MaxValue-1)
     - name: Print PATH environment variable
       shell: pwsh
       run: |
-        $env:PATH.Split([System.IO.Path]::PathSeparator) | Out-String -Width 4096
+        $env:PATH.Split([System.IO.Path]::PathSeparator)
     - name: List available commands
       shell: pwsh
-      run: >
+      run: |
         Get-Command -CommandType All |
-        Sort-Object CommandType,Source,Name |
-        Format-Table -AutoSize -Wrap |
-        Out-String -Width 4096
+          Sort-Object CommandType,Source,Name |
+          Out-String -Width ([Int32]::MaxValue-1)
+    - if: runner.os == 'Windows'
+      run: |
+        Get-CimInstance Win32_OperatingSystem |
+          Format-List -Property Caption,Version,BuildNumber |
+          Out-String -Width ([Int32]::MaxValue-1)
+    - if: runner.os == 'Windows'
+      run: |
+        Get-WindowsFeature |
+          Sort-Object Name |
+          Format-Table -Property Name,InstallState |
+          Out-String -Width ([Int32]::MaxValue-1)
+    - if: runner.os == 'Windows'
+      run: |
+        Get-Service |
+          Sort-Object Name |
+          Out-String -Width ([Int32]::MaxValue-1)
 
   actions:
     runs-on: ubuntu-latest
