@@ -1,0 +1,199 @@
+name: Windows
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  docker:
+    name: Docker for Windows
+    runs-on: windows-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Build Windows container
+      run: docker build -t windows-container:latest windows-container
+    - name: Run windows container
+      run: docker run --rm windows-container:latest
+
+  msvc:
+    name: MSVC
+    runs-on: windows-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - run: vswhere
+    - run: vswhere -latest -products * -requires "Microsoft.VisualStudio.Component.VC.Tools.x86.x64" -property installationPath
+    - run: Get-VSSetupInstance -All | ConvertTo-Json
+    - name: Find Visual Studio installation
+      run: |
+        $installPath = (Get-VSSetupInstance -All | Select-VSSetupInstance -Latest -Product * -Require "Microsoft.VisualStudio.Component.VC.Tools.x86.x64").InstallationPath
+        Write-Output "::set-env name=VSInstallPath::$installPath"
+    - name: List Visual Studio executables
+      run: |
+        Get-ChildItem $env:VSInstallPath -Recurse |
+          Where-Object Extension -eq .exe |
+          ForEach-Object { $_.FullName.Replace($env:VSInstallPath, ".") }
+    - name: Run VsDevCmd.bat
+      run: |
+        $vsdevcmd = Join-Path $env:VSInstallPath "Common7\Tools\VsDevCmd.bat"
+        & $env:COMSPEC /s /c """$vsdevcmd"" -arch=x64 -host_arch=x64 && set" | Where-Object {
+          $_ -Match '^(\w+)=(.*)$'
+        } | ForEach-Object {
+          $Name, $Value = $Matches[1], $Matches[2]
+          if ((-not (Test-Path Env:/$Name)) -or ((Get-Item Env:/$Name).Value -cne $Value)) {
+            $Name = $Name.Replace("%", "%25").
+                          Replace("`r", "%0D").
+                          Replace("`n", "%0A").
+                          Replace(":", "%3A").
+                          Replace(",", "%2C")
+            $Value = $Value.Replace("%", "%25").Replace("`r", "%0D").Replace("`n", "%0A")
+            Write-Output "::set-env name=$Name::$Value"
+          }
+        }
+    - name: Print Environment Variables
+      run: |
+        Get-ChildItem Env: | Out-String -Width ([Int32]::MaxValue-1)
+    - name: Print PATH environment variable
+      run: |
+        $env:PATH.Split([System.IO.Path]::PathSeparator)
+    - name: List available commands
+      run: |
+        Get-Command -CommandType Application |
+          Sort-Object Source,Name |
+          Format-Table -Property Name,Source |
+          Out-String -Width ([Int32]::MaxValue-1)
+    - name: CMake project (Visual Studio 16 2019)
+      run: |
+        cmake -S hello-world -B build.msvc -G "Visual Studio 16 2019"
+        cmake --build build.msvc --verbose
+        ./build.msvc/Debug/hello-c
+        ./build.msvc/Debug/hello-cpp
+    - name: CMake project (NMake)
+      run: |
+        cmake -S hello-world -B build.nmake -G "NMake Makefiles"
+        cmake --build build.nmake --verbose
+        ./build.nmake/hello-c
+        ./build.nmake/hello-cpp
+    - name: CMake project (Ninja)
+      run: |
+        cmake -S hello-world -B build.ninja -G "Ninja"
+        cmake --build build.ninja --verbose
+        ./build.ninja/hello-c
+        ./build.ninja/hello-cpp
+    - name: Upload an artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: msvc
+        path: |
+          build.*/**/hello-c.exe
+          build.*/**/hello-cpp.exe
+
+  msys2:
+    name: MSYS2
+
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MSYS
+        update: true
+        install: make msys2-devel cmake
+    - name: Print Environment Variables
+      run: typeset -px
+    - name: Print predefined macros
+      run: gcc -dM -E -x c /dev/null | sort
+    - name: CMake project
+      run: |
+        cmake -S hello-world -B build -G "Unix Makefiles"
+        cmake --build build --verbose
+        ./build/hello-c
+        ./build/hello-cpp
+    - name: Upload an artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: msys2
+        path: |
+          build/hello-c.exe
+          build/hello-cpp.exe
+
+  mingw64:
+    name: MinGW64
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: mingw-w64-x86_64-toolchain mingw-w64-x86_64-cmake
+    - name: Print Environment Variables
+      run: typeset -px
+    - name: Print predefined macros
+      run: gcc -dM -E -x c /dev/null | sort
+    - name: CMake project
+      run: |
+        cmake -S hello-world -B build -G "MinGW Makefiles"
+        cmake --build build --verbose
+        ./build/hello-c
+        ./build/hello-cpp
+    - name: Upload an artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: mingw64
+        path: |
+          build/hello-c.exe
+          build/hello-cpp.exe
+
+  wsl:
+    name: WSL
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: wsl --help
+    - name: Install Ubuntu 20.04
+      run: |
+        $ProgressPreference = "SilentlyContinue"
+        Invoke-WebRequest https://aka.ms/wslubuntu2004 -OutFile .\Ubuntu.zip
+        Expand-Archive .\Ubuntu.zip .\Ubuntu
+        .\Ubuntu\ubuntu2004.exe install --root
+    - run: wslconfig /list /all
+    - name: Update & Install packages
+      shell: wsl bash --noprofile --norc -eo pipefail -c "$(t=""$(wslpath -au '{0}')""; sed -i 's/\r$//' ""$t""; echo ""$t"")"
+      run: |
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update
+        apt-get install -qy --no-install-recommends build-essential cmake
+    - run: wsl cat /etc/os-release
+    - run: wsl typeset -px
+    - name: Print predefined macros
+      run: wsl bash -c 'gcc -dM -E -x c /dev/null | sort'
+    - name: CMake project
+      shell: wsl bash --noprofile --norc -eo pipefail -c "$(t=""$(wslpath -au '{0}')""; sed -i 's/\r$//' ""$t""; echo ""$t"")"
+      run: |
+        cmake -S hello-world -B build -G "Unix Makefiles"
+        cmake --build build --verbose
+        ./build/hello-c
+        ./build/hello-cpp
+    - name: Upload an artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: wsl
+        path: |
+          build/hello-c
+          build/hello-cpp
