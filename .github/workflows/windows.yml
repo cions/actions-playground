@@ -75,7 +75,7 @@ jobs:
         ./build.msvc/Release/hello-cpp
     - name: CMake project (Visual Studio 16 2019, with clang-cl)
       run: |
-        cmake -S hello-world -B build.msvc -G "Visual Studio 16 2019" -T clangcl
+        cmake -S hello-world -B build.clang-cl -G "Visual Studio 16 2019" -T clangcl
         cmake --build build.clang-cl --config Release --verbose
         ./build.clang-cl/Release/hello-c.exe
         ./build.clang-cl/Release/hello-cpp.exe
