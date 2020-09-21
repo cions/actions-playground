@@ -8,13 +8,21 @@ jobs:
   docker:
     name: Docker for Windows
     runs-on: windows-latest
+    env:
+      IMAGE_NAME: ghcr.io/${{ github.actor }}/windows-container:latest
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    - name: Run docker login
+      env:
+        GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+      run: docker login --username $env:GITHUB_ACTOR --password $env:GHCR_TOKEN ghcr.io
     - name: Build Windows container
-      run: docker build -t windows-container:latest windows-container
+      run: docker build --tag $env:IMAGE_NAME windows-container
     - name: Run windows container
-      run: docker run --rm windows-container:latest
+      run: docker run --rm $env:IMAGE_NAME
+    - name: Push windows container
+      run: docker push $env:IMAGE_NAME
 
   msvc:
     name: MSVC
@@ -22,18 +30,13 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - run: vswhere
+    - run: vswhere -products *
     - run: vswhere -latest -products * -requires "Microsoft.VisualStudio.Component.VC.Tools.x86.x64" -property installationPath
     - run: Get-VSSetupInstance -All | ConvertTo-Json
     - name: Find Visual Studio installation
       run: |
         $installPath = (Get-VSSetupInstance -All | Select-VSSetupInstance -Latest -Product * -Require "Microsoft.VisualStudio.Component.VC.Tools.x86.x64").InstallationPath
         Write-Output "::set-env name=VSInstallPath::$installPath"
-    - name: List Visual Studio executables
-      run: |
-        Get-ChildItem $env:VSInstallPath -Recurse |
-          Where-Object Extension -eq .exe |
-          ForEach-Object { $_.FullName.Replace($env:VSInstallPath, ".") }
     - name: Run VsDevCmd.bat
       run: |
         $vsdevcmd = Join-Path $env:VSInstallPath "Common7\Tools\VsDevCmd.bat"
@@ -42,6 +45,14 @@ jobs:
         } | ForEach-Object {
           $Name, $Value = $Matches[1], $Matches[2]
           if ((-not (Test-Path Env:/$Name)) -or ((Get-Item Env:/$Name).Value -cne $Value)) {
+            if ($Name -Like '*Path') {
+              [PSCustomObject]@{
+                Name = $Name;
+                Value = $Value -Replace [System.IO.Path]::PathSeparator, [System.Environment]::NewLine;
+              }
+            } else {
+              [PSCustomObject]@{ Name = $Name; Value = $Value }
+            }
             $Name = $Name.Replace("%", "%25").
                           Replace("`r", "%0D").
                           Replace("`n", "%0A").
@@ -50,44 +61,42 @@ jobs:
             $Value = $Value.Replace("%", "%25").Replace("`r", "%0D").Replace("`n", "%0A")
             Write-Output "::set-env name=$Name::$Value"
           }
-        }
-    - name: Print Environment Variables
+        } | Format-Table -AutoSize -Wrap | Out-String -Width ([Int32]::MaxValue-1) -Stream
+    - name: List Visual Studio executables
       run: |
-        Get-ChildItem Env: | Out-String -Width ([Int32]::MaxValue-1)
-    - name: Print PATH environment variable
-      run: |
-        $env:PATH.Split([System.IO.Path]::PathSeparator)
-    - name: List available commands
-      run: |
-        Get-Command -CommandType Application |
-          Sort-Object Source,Name |
-          Format-Table -Property Name,Source |
-          Out-String -Width ([Int32]::MaxValue-1)
+        Get-ChildItem $env:VSINSTALLDIR -Recurse |
+          Where-Object Extension -eq .exe |
+          ForEach-Object { $_.FullName.Replace($env:VSINSTALLDIR, "") }
     - name: CMake project (Visual Studio 16 2019)
       run: |
         cmake -S hello-world -B build.msvc -G "Visual Studio 16 2019"
-        cmake --build build.msvc --verbose
-        ./build.msvc/Debug/hello-c
-        ./build.msvc/Debug/hello-cpp
+        cmake --build build.msvc --config Release --verbose
+        ./build.msvc/Release/hello-c
+        ./build.msvc/Release/hello-cpp
+    - name: CMake project (Visual Studio 16 2019, with clang-cl)
+      run: |
+        cmake -S hello-world -B build.msvc -G "Visual Studio 16 2019" -T clangcl
+        cmake --build build.clang-cl --config Release --verbose
+        ./build.clang-cl/Release/hello-c.exe
+        ./build.clang-cl/Release/hello-cpp.exe
     - name: CMake project (NMake)
       run: |
-        cmake -S hello-world -B build.nmake -G "NMake Makefiles"
+        cmake -S hello-world -B build.nmake -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
         cmake --build build.nmake --verbose
-        ./build.nmake/hello-c
-        ./build.nmake/hello-cpp
+        ./build.nmake/hello-c.exe
+        ./build.nmake/hello-cpp.exe
     - name: CMake project (Ninja)
       run: |
-        cmake -S hello-world -B build.ninja -G "Ninja"
+        cmake -S hello-world -B build.ninja -G "Ninja" -DCMAKE_BUILD_TYPE=Release
         cmake --build build.ninja --verbose
-        ./build.ninja/hello-c
-        ./build.ninja/hello-cpp
+        ./build.ninja/hello-c.exe
+        ./build.ninja/hello-cpp.exe
     - name: Upload an artifact
       uses: actions/upload-artifact@v2
       with:
         name: msvc
         path: |
-          build.*/**/hello-c.exe
-          build.*/**/hello-cpp.exe
+          build.*
 
   msys2:
     name: MSYS2
@@ -113,7 +122,7 @@ jobs:
       run: gcc -dM -E -x c /dev/null | sort
     - name: CMake project
       run: |
-        cmake -S hello-world -B build -G "Unix Makefiles"
+        cmake -S hello-world -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
         cmake --build build --verbose
         ./build/hello-c
         ./build/hello-cpp
@@ -122,8 +131,7 @@ jobs:
       with:
         name: msys2
         path: |
-          build/hello-c.exe
-          build/hello-cpp.exe
+          build
 
   mingw64:
     name: MinGW64
@@ -148,7 +156,7 @@ jobs:
       run: gcc -dM -E -x c /dev/null | sort
     - name: CMake project
       run: |
-        cmake -S hello-world -B build -G "MinGW Makefiles"
+        cmake -S hello-world -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
         cmake --build build --verbose
         ./build/hello-c
         ./build/hello-cpp
@@ -157,8 +165,7 @@ jobs:
       with:
         name: mingw64
         path: |
-          build/hello-c.exe
-          build/hello-cpp.exe
+          build
 
   wsl:
     name: WSL
@@ -169,11 +176,11 @@ jobs:
     - name: Install Ubuntu 20.04
       run: |
         $ProgressPreference = "SilentlyContinue"
-        Invoke-WebRequest https://aka.ms/wslubuntu2004 -OutFile .\Ubuntu.zip
-        Expand-Archive .\Ubuntu.zip .\Ubuntu
+        Invoke-WebRequest -Uri https://aka.ms/wslubuntu2004 -OutFile .\Ubuntu.zip
+        Expand-Archive -Path .\Ubuntu.zip -DestinationPath .\Ubuntu
         .\Ubuntu\ubuntu2004.exe install --root
     - run: wslconfig /list /all
-    - name: Update & Install packages
+    - name: Install packages
       shell: wsl bash --noprofile --norc -eo pipefail -c "$(t=""$(wslpath -au '{0}')""; sed -i 's/\r$//' ""$t""; echo ""$t"")"
       run: |
         export DEBIAN_FRONTEND=noninteractive
@@ -186,7 +193,7 @@ jobs:
     - name: CMake project
       shell: wsl bash --noprofile --norc -eo pipefail -c "$(t=""$(wslpath -au '{0}')""; sed -i 's/\r$//' ""$t""; echo ""$t"")"
       run: |
-        cmake -S hello-world -B build -G "Unix Makefiles"
+        cmake -S hello-world -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
         cmake --build build --verbose
         ./build/hello-c
         ./build/hello-cpp
@@ -195,5 +202,4 @@ jobs:
       with:
         name: wsl
         path: |
-          build/hello-c
-          build/hello-cpp
+          build
