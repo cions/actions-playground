@@ -30,33 +30,31 @@ jobs:
     - name: Print Environment Variables
       shell: pwsh
       run: |
-        Get-ChildItem Env: | Out-String -Width ([Int32]::MaxValue-1)
-    - name: Print PATH environment variable
-      shell: pwsh
-      run: |
-        $env:PATH.Split([System.IO.Path]::PathSeparator)
+        Get-ChildItem -Path Env:/ | ForEach-Object {
+          if ($_.Name -Like '*Path') {
+            $_.Value = $_.Value -Replace [System.IO.Path]::PathSeparator, [System.Environment]::NewLine
+          }
+          $_
+        } | Format-Table -AutoSize -Wrap |
+          Out-String -Width ([Int32]::MaxValue-1) -Stream
     - name: List available commands
       shell: pwsh
       run: |
         Get-Command -CommandType All |
-          Sort-Object CommandType,Source,Name |
-          Out-String -Width ([Int32]::MaxValue-1)
+          Sort-Object -Property CommandType, Source, Name |
+          Format-Table -AutoSize -Property CommandType, Name, Source |
+          Out-String -Width ([Int32]::MaxValue-1) -Stream
     - if: runner.os == 'Windows'
       run: |
-        Get-CimInstance Win32_OperatingSystem |
-          Format-List -Property Caption,Version,BuildNumber |
-          Out-String -Width ([Int32]::MaxValue-1)
+        Get-CimInstance -ClassName Win32_OperatingSystem |
+          Format-List -Property Caption, Version, BuildNumber |
+          Out-String -Width ([Int32]::MaxValue-1) -Stream
     - if: runner.os == 'Windows'
       run: |
         Get-WindowsFeature |
-          Sort-Object Name |
-          Format-Table -Property Name,InstallState |
-          Out-String -Width ([Int32]::MaxValue-1)
-    - if: runner.os == 'Windows'
-      run: |
-        Get-Service |
-          Sort-Object Name |
-          Out-String -Width ([Int32]::MaxValue-1)
+          Sort-Object -Property Name |
+          Format-Table -AutoSize -Property Name, InstallState |
+          Out-String -Width ([Int32]::MaxValue-1) -Stream
 
   actions:
     runs-on: ubuntu-latest
@@ -108,7 +106,7 @@ jobs:
     - name: Run docker inspect
       run: docker container ls -q | xargs -rn1 docker container inspect
     - name: Use Services
-      run: curl -sSfL http://localhost:8888/ | tee nginx.html
+      run: curl -fsSL http://localhost:8888/ | tee nginx.html
     - name: Upload an artifact
       uses: actions/upload-artifact@v2
       with:
@@ -188,7 +186,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Use service container
-      run: curl -sSfL http://nginx/
+      run: curl -fsSL http://nginx/
     - name: TypeScript Action
       uses: ./.github/actions/typescript-action
     - name: Docker Action
