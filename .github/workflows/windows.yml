@@ -39,7 +39,7 @@ jobs:
         Write-Output "::set-env name=VSInstallPath::$installPath"
     - name: Import Microsoft.VisualStudio.DevShell module
       run: |
-        Import-Module -Name (Join-Path -Path $VSInstallPath -ChildPath "Common7\Tools\Microsoft.VisualStudio.DevShell.dll") -PassThru |
+        Import-Module -Name (Join-Path -Path $env:VSInstallPath -ChildPath "Common7\Tools\Microsoft.VisualStudio.DevShell.dll") -PassThru |
           Format-Table -AutoSize -Wrap
     - name: Run VsDevCmd.bat
       run: |
