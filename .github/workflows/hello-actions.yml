@@ -31,12 +31,11 @@ jobs:
       shell: pwsh
       run: |
         Get-ChildItem -Path Env:/ | ForEach-Object {
-          if ($_.Name -Like '*Path') {
-            $_.Value = $_.Value -Replace [System.IO.Path]::PathSeparator, [System.Environment]::NewLine
+          [PSCustomObject]@{
+            Name = $_.Name;
+            Value = $_.Value -Replace [System.IO.Path]::PathSeparator, [System.Environment]::NewLine;
           }
-          $_
-        } | Format-Table -AutoSize -Wrap |
-          Out-String -Width ([Int32]::MaxValue-1) -Stream
+        } | Format-Table -AutoSize -Wrap | Out-String -Width ([Int32]::MaxValue-1) -Stream
     - name: List available commands
       shell: pwsh
       run: |
