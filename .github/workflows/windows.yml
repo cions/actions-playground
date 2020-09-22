@@ -45,13 +45,9 @@ jobs:
         } | ForEach-Object {
           $Name, $Value = $Matches[1], $Matches[2]
           if ((-not (Test-Path Env:/$Name)) -or ((Get-Item Env:/$Name).Value -cne $Value)) {
-            if ($Name -Like '*Path') {
-              [PSCustomObject]@{
-                Name = $Name;
-                Value = $Value -Replace [System.IO.Path]::PathSeparator, [System.Environment]::NewLine;
-              }
-            } else {
-              [PSCustomObject]@{ Name = $Name; Value = $Value }
+            [PSCustomObject]@{
+              Name = $Name;
+              Value = $Value -Replace [System.IO.Path]::PathSeparator, [System.Environment]::NewLine;
             }
             $Name = $Name.Replace("%", "%25").
                           Replace("`r", "%0D").
@@ -65,7 +61,7 @@ jobs:
     - name: List Visual Studio executables
       run: |
         Get-ChildItem $env:VSINSTALLDIR -Recurse |
-          Where-Object Extension -eq .exe |
+          Where-Object Extension -in @($env:PATHEXT.Split([System.IO.Path]::PathSeparator), ".PS1") |
           ForEach-Object { $_.FullName.Replace($env:VSINSTALLDIR, "") }
     - name: CMake project (Visual Studio 16 2019)
       run: |
