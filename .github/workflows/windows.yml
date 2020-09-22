@@ -37,6 +37,10 @@ jobs:
       run: |
         $installPath = (Get-VSSetupInstance -All | Select-VSSetupInstance -Latest -Product * -Require "Microsoft.VisualStudio.Component.VC.Tools.x86.x64").InstallationPath
         Write-Output "::set-env name=VSInstallPath::$installPath"
+    - name: Import Microsoft.VisualStudio.DevShell module
+      run: |
+        Import-Module -Name (Join-Path -Path $VSInstallPath -ChildPath "Common7\Tools\Microsoft.VisualStudio.DevShell.dll") -PassThru |
+          Format-Table -AutoSize -Wrap
     - name: Run VsDevCmd.bat
       run: |
         $vsdevcmd = Join-Path $env:VSInstallPath "Common7\Tools\VsDevCmd.bat"
@@ -61,7 +65,7 @@ jobs:
     - name: List Visual Studio executables
       run: |
         Get-ChildItem $env:VSINSTALLDIR -Recurse |
-          Where-Object Extension -in @($env:PATHEXT.Split([System.IO.Path]::PathSeparator), ".PS1") |
+          Where-Object Extension -in @($env:PATHEXT.Split([System.IO.Path]::PathSeparator) + ".PS1") |
           ForEach-Object { $_.FullName.Replace($env:VSINSTALLDIR, "") }
     - name: CMake project (Visual Studio 16 2019)
       run: |
@@ -185,7 +189,7 @@ jobs:
     - run: wsl cat /etc/os-release
     - run: wsl typeset -px
     - name: Print predefined macros
-      run: wsl bash -c 'gcc -dM -E -x c /dev/null | sort'
+      run: wsl bash -c 'gcc -dM -E -x c /dev/null | sort; true'
     - name: CMake project
       shell: wsl bash --noprofile --norc -eo pipefail -c "$(t=""$(wslpath -au '{0}')""; sed -i 's/\r$//' ""$t""; echo ""$t"")"
       run: |
