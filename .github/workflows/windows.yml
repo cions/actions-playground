@@ -36,10 +36,10 @@ jobs:
     - name: Find Visual Studio installation
       run: |
         $installPath = (Get-VSSetupInstance -All | Select-VSSetupInstance -Latest -Product * -Require "Microsoft.VisualStudio.Component.VC.Tools.x86.x64").InstallationPath
-        Write-Output "::set-env name=VSInstallPath::$installPath"
+        Write-Output "VSINSTALLPATH=$installPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
     - name: Import Microsoft.VisualStudio.DevShell module
       run: |
-        Import-Module -Name (Join-Path -Path $env:VSInstallPath -ChildPath "Common7\Tools\Microsoft.VisualStudio.DevShell.dll") -PassThru |
+        Import-Module -Name (Join-Path -Path $env:VSINSTALLPATH -ChildPath "Common7\Tools\Microsoft.VisualStudio.DevShell.dll") -PassThru |
           Format-Table -AutoSize -Wrap
     - name: Run VsDevCmd.bat
       run: |
@@ -53,13 +53,7 @@ jobs:
               Name = $Name;
               Value = $Value -Replace [System.IO.Path]::PathSeparator, [System.Environment]::NewLine;
             }
-            $Name = $Name.Replace("%", "%25").
-                          Replace("`r", "%0D").
-                          Replace("`n", "%0A").
-                          Replace(":", "%3A").
-                          Replace(",", "%2C")
-            $Value = $Value.Replace("%", "%25").Replace("`r", "%0D").Replace("`n", "%0A")
-            Write-Output "::set-env name=$Name::$Value"
+            Write-Output "$Name=$Value" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           }
         } | Format-Table -AutoSize -Wrap | Out-String -Width ([Int32]::MaxValue-1) -Stream
     - name: List Visual Studio executables
