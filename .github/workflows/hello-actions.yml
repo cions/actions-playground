@@ -19,6 +19,7 @@ jobs:
         os:
         - windows-latest
         - macos-latest
+        - macos-11.0
         - ubuntu-16.04
         - ubuntu-18.04
         - ubuntu-20.04
