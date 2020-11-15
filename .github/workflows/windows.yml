@@ -31,8 +31,8 @@ jobs:
       continue-on-error: true
       run: |
         [Environment]::SetEnvironmentVariable("DOCKER_CLI_EXPERIMENTAL", "enabled")
-        Write-Output "{\"experimental\":true}" | Out-File -FilePath "$Env:ProgramData\docker\config\daemon.json" -Encoding utf8
-        Restart-Service *docker*
+        ConvertTo-Json @{ experimental = $True } | Out-File -FilePath "$Env:ProgramData\docker\config\daemon.json" -Encoding utf8
+        Restart-Service docker
         docker version
         docker run --rm --platform linux/amd64 ubuntu:latest cat /etc/os-release
 
