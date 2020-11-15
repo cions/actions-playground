@@ -9,20 +9,26 @@ jobs:
     name: Docker for Windows
     runs-on: windows-latest
     env:
-      IMAGE_NAME: ghcr.io/${{ github.actor }}/windows-container:latest
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/windows-container:latest
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Run docker login
+    - name: Run docker version
+      run: docker version
+    - name: Run docker info
+      run: docker info
+    - name: Login to GitHub Container Registry
       env:
         GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-      run: docker login --username $env:GITHUB_ACTOR --password $env:GHCR_TOKEN ghcr.io
+      run: docker login --username $Env:GITHUB_REPOSITORY_OWNER --password $Env:GHCR_TOKEN ghcr.io
     - name: Build Windows container
-      run: docker build --tag $env:IMAGE_NAME windows-container
+      run: docker build --tag $Env:IMAGE_NAME windows-container
     - name: Run windows container
-      run: docker run --rm $env:IMAGE_NAME
+      run: docker run --rm $Env:IMAGE_NAME
     - name: Push windows container
-      run: docker push $env:IMAGE_NAME
+      run: docker push $Env:IMAGE_NAME
+    - name: Run linux container
+      run: docker run --rm --platform linux/amd64 ubuntu:latest cat /etc/os-release
 
   msvc:
     name: MSVC
@@ -36,31 +42,31 @@ jobs:
     - name: Find Visual Studio installation
       run: |
         $installPath = (Get-VSSetupInstance -All | Select-VSSetupInstance -Latest -Product * -Require "Microsoft.VisualStudio.Component.VC.Tools.x86.x64").InstallationPath
-        Write-Output "VSINSTALLPATH=$installPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+        Write-Output "VSINSTALLPATH=$installPath" | Out-File -FilePath $Env:GITHUB_ENV -Append -Encoding utf8
     - name: Import Microsoft.VisualStudio.DevShell module
       run: |
-        Import-Module -Name (Join-Path -Path $env:VSINSTALLPATH -ChildPath "Common7\Tools\Microsoft.VisualStudio.DevShell.dll") -PassThru |
+        Import-Module -Name (Join-Path -Path $Env:VSINSTALLPATH -ChildPath "Common7\Tools\Microsoft.VisualStudio.DevShell.dll") -PassThru |
           Format-Table -AutoSize -Wrap
     - name: Run VsDevCmd.bat
       run: |
-        $vsdevcmd = Join-Path $env:VSInstallPath "Common7\Tools\VsDevCmd.bat"
-        & $env:COMSPEC /s /c """$vsdevcmd"" -arch=x64 -host_arch=x64 && set" | Where-Object {
+        $vsdevcmd = Join-Path -Path $Env:VSINSTALLPATH -ChildPath "Common7\Tools\VsDevCmd.bat"
+        & $Env:COMSPEC /s /c """$vsdevcmd"" -arch=x64 -host_arch=x64 && set" | Where-Object {
           $_ -Match '^(\w+)=(.*)$'
         } | ForEach-Object {
           $Name, $Value = $Matches[1], $Matches[2]
-          if ((-not (Test-Path Env:/$Name)) -or ((Get-Item Env:/$Name).Value -cne $Value)) {
+          if ((-Not (Test-Path -Path Env:/$Name)) -OR ((Get-Item -Path Env:/$Name).Value -CNE $Value)) {
             [PSCustomObject]@{
               Name = $Name;
               Value = $Value -Replace [System.IO.Path]::PathSeparator, [System.Environment]::NewLine;
             }
-            Write-Output "$Name=$Value" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+            Write-Output "$Name=$Value" | Out-File -FilePath $Env:GITHUB_ENV -Append -Encoding utf8
           }
         } | Format-Table -AutoSize -Wrap | Out-String -Width ([Int32]::MaxValue-1) -Stream
     - name: List Visual Studio executables
       run: |
-        Get-ChildItem $env:VSINSTALLDIR -Recurse |
-          Where-Object Extension -in @($env:PATHEXT.Split([System.IO.Path]::PathSeparator) + ".PS1") |
-          ForEach-Object { $_.FullName.Replace($env:VSINSTALLDIR, "") }
+        Get-ChildItem -Path $Env:VSINSTALLDIR -Recurse |
+          Where-Object Extension -In @($Env:PATHEXT.Split([System.IO.Path]::PathSeparator) + ".PS1") |
+          ForEach-Object { $_.FullName.Replace($Env:VSINSTALLDIR, "") }
     - name: CMake project (Visual Studio 16 2019)
       run: |
         cmake -S hello-world -B build.msvc -G "Visual Studio 16 2019"
