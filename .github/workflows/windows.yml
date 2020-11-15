@@ -28,7 +28,13 @@ jobs:
     - name: Push windows container
       run: docker push $Env:IMAGE_NAME
     - name: Run linux container
-      run: docker run --rm --platform linux/amd64 ubuntu:latest cat /etc/os-release
+      continue-on-error: true
+      run: |
+        [Environment]::SetEnvironmentVariable("DOCKER_CLI_EXPERIMENTAL", "1")
+        Write-Output "{\"experimental\":true}" | Out-File -FilePath "C:\ProgramData\docker\config\config.json" -Encoding utf8
+        Restart-Service docker
+        docker version
+        docker run --rm --platform linux/amd64 ubuntu:latest cat /etc/os-release
 
   msvc:
     name: MSVC
