@@ -27,16 +27,6 @@ jobs:
       run: docker run --rm $Env:IMAGE_NAME
     - name: Push windows container
       run: docker push $Env:IMAGE_NAME
-    - name: Run linux container
-      continue-on-error: true
-      run: |
-        [Environment]::SetEnvironmentVariable("DOCKER_CLI_EXPERIMENTAL", "enabled")
-        Invoke-WebRequest -Uri https://github.com/linuxkit/lcow/releases/download/v4.14.35-v0.3.9/release.zip -OutFile release.zip
-        Expand-Archive -Path release.zip -DestinationPath "$Env:ProgramFiles\Linux Containers\."
-        ConvertTo-Json @{ experimental = $True } | Out-File -FilePath "$Env:ProgramData\docker\config\daemon.json" -Encoding utf8
-        Restart-Service docker
-        docker version
-        docker run --rm --platform linux/amd64 ubuntu:latest cat /etc/os-release
 
   msvc:
     name: MSVC
