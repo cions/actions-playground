@@ -30,7 +30,7 @@ jobs:
     - name: Run linux container
       continue-on-error: true
       run: |
-        [Environment]::SetEnvironmentVariable("DOCKER_CLI_EXPERIMENTAL", "1")
+        [Environment]::SetEnvironmentVariable("DOCKER_CLI_EXPERIMENTAL", "enabled")
         Write-Output "{\"experimental\":true}" | Out-File -FilePath "C:\ProgramData\docker\config\config.json" -Encoding utf8
         Restart-Service docker
         docker version
