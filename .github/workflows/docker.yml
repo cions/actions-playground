@@ -7,6 +7,8 @@ on:
 jobs:
   docker:
     runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/hello-world
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -29,21 +31,14 @@ jobs:
         platforms: linux/amd64,linux/386,linux/arm/v6,linux/arm/v7,linux/arm64,linux/ppc64le
         load: ${{ github.event_name == 'pull_request' }}
         push: ${{ github.event_name != 'pull_request' }}
-        tags: ghcr.io/${{ github.repository_owner }}/hello-world:latest
-        cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/hello-world:latest
+        tags: ${{ env.IMAGE_NAME }}:latest
+        labels: |
+          org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+        cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:latest
         cache-to: type=inline
-    - name: Inspect Image
-      run: docker buildx imagetools inspect --raw ghcr.io/${{ github.repository_owner }}/hello-world@${{ steps.build.outputs.digest }}
     - name: Run container
-      env:
-        DOCKER_CLI_EXPERIMENTAL: enabled
       run: |
-        echo '{"experimental": true}' | sudo tee /etc/docker/daemon.json >/dev/null
-        sudo systemctl restart docker.service
-        docker run --rm ghcr.io/${{ github.repository_owner }}/hello-world:latest
-        docker run --rm --platform=linux/amd64 ghcr.io/${{ github.repository_owner }}/hello-world:latest
-        docker run --rm --platform=linux/386 ghcr.io/${{ github.repository_owner }}/hello-world:latest
-        docker run --rm --platform=linux/arm/v6 ghcr.io/${{ github.repository_owner }}/hello-world:latest
-        docker run --rm --platform=linux/arm/v7 ghcr.io/${{ github.repository_owner }}/hello-world:latest
-        docker run --rm --platform=linux/arm64 ghcr.io/${{ github.repository_owner }}/hello-world:latest
-        docker run --rm --platform=linux/ppc64le ghcr.io/${{ github.repository_owner }}/hello-world:latest
+        IMAGE=${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
+        docker buildx imagetools inspect --raw ${IMAGE} | jq -r '.manifests[].digest' | while read -r DIGEST; do
+          docker run --rm ${IMAGE_NAME}@${DIGEST}
+        done
