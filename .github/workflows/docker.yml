@@ -33,10 +33,12 @@ jobs:
         cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/hello-world:latest
         cache-to: type=inline
     - name: Run container
+      env:
+        DOCKER_CLI_EXPERIMENTAL: enabled
       run: |
         docker version
-        echo '{"experimental": true}' > /etc/docker/daemon.json
-        systemctl restart docker.service
+        echo '{"experimental": true}' | sudo tee /etc/docker/daemon.json
+        sudo systemctl restart docker.service
         docker version
         docker run --rm ghcr.io/${{ github.repository_owner }}/hello-world:latest
         docker run --rm --platform=linux/amd64 ghcr.io/${{ github.repository_owner }}/hello-world:latest
