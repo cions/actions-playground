@@ -33,7 +33,7 @@ jobs:
         cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/hello-world:latest
         cache-to: type=inline
     - name: Inspect Image
-      run: docker buildx imagetools inspect --raw ${{ steps.build.outputs.digest }}
+      run: docker buildx imagetools inspect --raw ghcr.io/${{ github.repository_owner }}/hello-world@${{ steps.build.outputs.digest }}
     - name: Run container
       env:
         DOCKER_CLI_EXPERIMENTAL: enabled
