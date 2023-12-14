@@ -46,7 +46,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         repository: ${{ github.repository }}
         ref: "master"
@@ -54,7 +54,7 @@ jobs:
         submodules: "recursive"
         token: ${{ github.token }}
     - name: Setup Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: "3.x"
     - id: bashaction
@@ -158,7 +158,7 @@ jobs:
           print(os.path.join(os.getenv("GITHUB_WORKSPACE"), "python"), file=f)
     - id: ghsaction
       name: GitHub Script Action
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         script: |
           const os = require("node:os");
@@ -255,7 +255,7 @@ jobs:
       run: curl -fsSL http://localhost:8888/ | tee nginx.html
     - id: upload
       name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: nginx
         path: nginx.html
@@ -290,7 +290,7 @@ jobs:
     steps:
     - id: download
       name: Download artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: nginx
         path: nginx
@@ -322,19 +322,19 @@ jobs:
 
     steps:
     - name: Download artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: nginx
     - name: Build pages
       run: |
         install -D nginx.html build/index.html
     - name: Upload pages artifact
-      uses: actions/upload-pages-artifact@v1
+      uses: actions/upload-pages-artifact@v2
       with:
         path: build
     - id: deploy
       name: Deploy to GitHub Pages
-      uses: actions/deploy-pages@v2
+      uses: actions/deploy-pages@v3
 
   container:
     name: Run in conatiner
@@ -372,7 +372,7 @@ jobs:
       shell: sh
       run: apk add --no-cache bash curl git jq util-linux
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Run docker version
       run: docker version
     - name: Run docker inspect
@@ -414,7 +414,7 @@ jobs:
     steps:
     - id: values
       name: Set values
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         script: |
           core.setOutput("string", "\t\n\r\"'\\");
@@ -473,7 +473,7 @@ jobs:
     steps:
     - id: set-output
       name: Set output
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         script: |
           core.setOutput("output", "value");
