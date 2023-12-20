@@ -186,7 +186,7 @@ on:
   status:
   watch:
     types:
-    - starred
+    - started
   workflow_call:
     inputs:
       string:
