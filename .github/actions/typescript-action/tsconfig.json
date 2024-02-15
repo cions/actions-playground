@@ -4,7 +4,6 @@
     "lib": ["es2022"],
     "module": "node16",
     "moduleResolution": "node16",
-
     "strict": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
@@ -15,9 +14,7 @@
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-
     "skipLibCheck": true,
-
     "paths": {
       "src/*": ["./src/*"]
     }
