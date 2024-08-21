@@ -211,6 +211,10 @@ jobs:
       uses: ./.github/actions/docker-action
       with:
         input: action input
+    - name: Docker action 2
+      uses: docker://ghcr.io/cions/docker-action:latest
+      with:
+        args: action input
     - id: crsaction
       name: Composite Run Steps Action
       uses: ./.github/actions/composite-run-steps-action
@@ -412,6 +416,10 @@ jobs:
       uses: cions/actions-playground/.github/actions/docker-action@master
       with:
         input: action input
+    - name: Docker action 2
+      uses: docker://ghcr.io/cions/docker-action:latest
+      with:
+        args: action input
     - name: Composite Run Steps Action
       uses: cions/actions-playground/.github/actions/composite-run-steps-action@master
       with:
@@ -597,6 +605,8 @@ jobs:
         action: print-contexts
         contexts: job,needs
     - name: Set job conclusion
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: |
         gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs" \
           --jq '.jobs[] | select(.name == "Failing Job 1") | .id' \

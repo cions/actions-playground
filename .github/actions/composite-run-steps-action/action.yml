@@ -25,17 +25,15 @@ runs:
     env:
       GITHUB_CONTEXT: ${{ toJSON(github) }}
       ENV_CONTEXT: ${{ toJSON(env) }}
-      VARS_CONTEXT: ${{ toJSON(vars) }}
       JOB_CONTEXT: ${{ toJSON(job) }}
       STEPS_CONTEXT: ${{ toJSON(steps) }}
       RUNNER_CONTEXT: ${{ toJSON(runner) }}
-      SECRETS_CONTEXT: ${{ toJSON(secrets) }}
       STRATEGY_CONTEXT: ${{ toJSON(strategy) }}
       MATRIX_CONTEXT: ${{ toJSON(matrix) }}
-      NEEDS_CONTEXT: ${{ toJSON(needs) }}
       INPUTS_CONTEXT: ${{ toJSON(inputs) }}
     with:
       action: print-contexts
+      contexts: github,env,job,steps,runner,strategy,matrix,inputs
   - id: set-output
     shell: bash
     run: echo "output=Composite Run Steps Action output" >> "${GITHUB_OUTPUT}"
