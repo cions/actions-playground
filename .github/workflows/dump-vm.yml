@@ -12,7 +12,6 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      fail-fast: false
       matrix:
         os:
         - windows-2022
@@ -20,9 +19,11 @@ jobs:
         - macos-14
         - macos-13
         - macos-12
-        - macos-11
+        - ubuntu-24.04
         - ubuntu-22.04
         - ubuntu-20.04
+      max-parallel: 10
+      fail-fast: false
 
     steps:
     - name: Print Runner Hardware Configuration
@@ -33,8 +34,8 @@ jobs:
         console.log(`Architecture: ${os.arch()}`);
         console.log(`Platform: ${os.platform()}`);
         console.log(`Processor: ${os.availableParallelism()}x ${os.cpus()[0].model}`);
-        console.log(`Free Memory: ${(os.freemem() / (1024 * 1024 * 1024)).toFixed(2)} GiB`);
-        console.log(`Total Memory: ${(os.totalmem() / (1024 * 1024 * 1024)).toFixed(2)} GiB`);
+        console.log(`Free Memory: ${(os.freemem() / Math.pow(2, 30)).toFixed(2)} GiB`);
+        console.log(`Total Memory: ${(os.totalmem() / Math.pow(2, 30)).toFixed(2)} GiB`);
     - name: Print environment variables
       uses: cions/actions-playground/.github/actions/typescript-action@master
       with:

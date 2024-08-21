@@ -4,11 +4,12 @@ run-name: Test Actions
 on: [ push, pull_request, workflow_dispatch ]
 
 concurrency:
-  group: ${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   actions: read
+  attestations: read
   checks: read
   contents: read
   deployments: read
@@ -25,12 +26,23 @@ permissions:
 env:
   WORKFLOW_ENV: "value"
 
+defaults:
+  run:
+    shell: bash
+    working-directory: .
+
 jobs:
   actions:
     name: Test Actions
+
     runs-on: ubuntu-latest
+
+    concurrency:
+      group: ${{ github.workflow }}-actions-${{ github.ref }}
+      cancel-in-progress: true
+    timeout-minutes: 10
+
     permissions: write-all
-    timeout-minutes: 60
 
     outputs:
       bashoutput: ${{ steps.bashaction.outputs.output }}
@@ -45,11 +57,13 @@ jobs:
       JOB_ENV: "value"
 
     steps:
+    - name: Run pwd
+      run: pwd
     - name: Checkout
       uses: actions/checkout@v4
       with:
         repository: ${{ github.repository }}
-        ref: "master"
+        ref: ${{ github.ref }}
         path: "."
         submodules: "recursive"
         token: ${{ github.token }}
@@ -61,6 +75,8 @@ jobs:
       name: Bash Action
       shell: bash
       run: |
+        echo -n "Current directory: "; pwd
+
         echo "::notice title=bash notice::notice message"
         echo "::warning title=bash warning::warning message"
         echo "::error title=bash error::error message"
@@ -102,7 +118,10 @@ jobs:
     - id: pwshaction
       name: PowerShell Action
       shell: pwsh
+      working-directory: ./container
       run: |
+        Get-Location
+
         Write-Output "::notice title=pwsh notice::notice message"
         Write-Output "::warning title=pwsh warning::warning message"
         Write-Output "::error title=pwsh error::error message"
@@ -143,6 +162,10 @@ jobs:
         print(f"sys.argv = {sys.argv}")
         print(f"os.getcwd() = {os.getcwd()}")
 
+        print("::notice title=python notice::notice message")
+        print("::warning title=python warning::warning message")
+        print("::error title=python error::error message")
+
         with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
           print("output<<EOF", file=f)
           print("Python Action output", file=f)
@@ -160,14 +183,14 @@ jobs:
         script: |
           const os = require("node:os");
 
-          process.stdout.write(`core.isDebug() = ${core.isDebug()}${os.EOL}`);
+          console.log(`context = ${JSON.stringify(context, null, 2)}`);
+          console.log(`core.isDebug() = ${core.isDebug()}`);
+
           core.debug("debug message");
           core.info("info message");
           core.notice("notice message");
           core.warning("warning message");
           core.error("error message");
-
-          console.log(`context = ${JSON.stringify(context, null, 2)}`);
 
           core.setOutput("output", "GitHub Script Action output");
           core.exportVariable("GITHUB_SCRIPT_ENV", "value");
@@ -175,20 +198,24 @@ jobs:
 
           await core.group("octokit", async () => {
             const repo = await github.rest.repos.get(context.repo);
-            core.info(`repo = ${JSON.stringify(repo, null, 2)}`);
+            console.log(`repo = ${JSON.stringify(repo, null, 2)}`);
           });
 
           return "Return value";
         result-encoding: string
     - id: tsaction
       name: TypeScript Action
-      uses: cions/actions-playground/.github/actions/typescript-action@master
+      uses: ./.github/actions/typescript-action
     - id: dockeraction
       name: Docker Action
-      uses: cions/actions-playground/.github/actions/docker-action@master
+      uses: ./.github/actions/docker-action
+      with:
+        input: action input
     - id: crsaction
       name: Composite Run Steps Action
-      uses: cions/actions-playground/.github/actions/composite-run-steps-action@master
+      uses: ./.github/actions/composite-run-steps-action
+      with:
+        input: action input
     - name: Print environment variables
       uses: cions/actions-playground/.github/actions/typescript-action@master
       with:
@@ -251,7 +278,7 @@ jobs:
     - name: Use services
       run: curl -fsSL http://localhost:8888/ | tee nginx.html
     - id: upload
-      name: Upload artifact
+      name: Upload the artifact
       uses: actions/upload-artifact@v4
       with:
         name: nginx
@@ -270,12 +297,11 @@ jobs:
     uses: cions/actions-playground/.github/workflows/dump-events.yml@master
     with:
       string: "value"
-      number: 42
     secrets:
       token: ${{ github.token }}
 
   consumer:
-    name: Depends other jobs
+    name: Depends on other jobs
 
     runs-on: ubuntu-latest
 
@@ -286,12 +312,12 @@ jobs:
 
     steps:
     - id: download
-      name: Download artifact
+      name: Download the artifact
       uses: actions/download-artifact@v4
       with:
         name: nginx
         path: nginx
-    - name: Print artifact
+    - name: Print the artifact
       run: cat nginx/nginx.html
     - name: Print contexts
       uses: cions/actions-playground/.github/actions/typescript-action@master
@@ -318,14 +344,13 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
 
     steps:
-    - name: Download artifact
+    - name: Download the artifact
       uses: actions/download-artifact@v4
       with:
         name: nginx
-    - name: Build pages
-      run: |
-        install -D nginx.html build/index.html
-    - name: Upload pages artifact
+    - name: Build the pages artifact
+      run: install -D nginx.html build/index.html
+    - name: Upload the pages artifact
       uses: actions/upload-pages-artifact@v3
       with:
         path: build
@@ -334,14 +359,14 @@ jobs:
       uses: actions/deploy-pages@v4
 
   container:
-    name: Run in conatiner
+    name: Run in a conatiner
 
     runs-on: ubuntu-latest
 
     container:
       image: docker:stable
       env:
-        DOCKER_ENV: value
+        CONTAINER_ENV: value
       ports:
       - "80"
       volumes:
@@ -364,6 +389,9 @@ jobs:
         shell: bash
         working-directory: .
 
+    env:
+      JOB_ENV: value
+
     steps:
     - name: Install packages
       shell: sh
@@ -382,6 +410,12 @@ jobs:
       uses: cions/actions-playground/.github/actions/typescript-action@master
     - name: Docker Action
       uses: cions/actions-playground/.github/actions/docker-action@master
+      with:
+        input: action input
+    - name: Composite Run Steps Action
+      uses: cions/actions-playground/.github/actions/composite-run-steps-action@master
+      with:
+        input: action input
     - name: Print environment variables
       uses: cions/actions-playground/.github/actions/typescript-action@master
       with:
@@ -427,7 +461,7 @@ jobs:
         VAL_NUMBER1: ${{ 42 }}
         VAL_NUMBER2: ${{ 0xdeadbeef }}
         VAL_NUMBER3: ${{ 3.141592653589793 }}
-        VAL_NUMBER4: ${{ 0.6022e24 }}
+        VAL_NUMBER4: ${{ 6.022e23 }}
         VAL_STRING1: ${{ 'Hello, GitHub Action''s world!' }}
         VAL_STRING2: ${{ steps.values.outputs.string }}
         VAL_MISSING_PROP1: ${{ runner.missing }}
@@ -465,14 +499,21 @@ jobs:
 
   failing-job-1:
     name: Failing Job 1
+
     runs-on: ubuntu-latest
+
     continue-on-error: true
+    timeout-minutes: 10
+
     outputs:
       output: ${{ steps.set-output.outputs.output }}
+
     steps:
     - id: set-output
       name: Set output
       uses: actions/github-script@v7
+      continue-on-error: true
+      timeout-minutes: 1
       with:
         script: |
           core.setOutput("output", "value");
@@ -544,6 +585,8 @@ jobs:
     - failing-job-3
     - failing-job-4
     if: always()
+    permissions:
+      checks: write
     steps:
     - name: Print contexts
       uses: cions/actions-playground/.github/actions/typescript-action@master
@@ -553,3 +596,12 @@ jobs:
       with:
         action: print-contexts
         contexts: job,needs
+    - name: Set job conclusion
+      run: |
+        gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs" \
+          --jq '.jobs[] | select(.name == "Failing Job 1") | .id' \
+        | while read CHECK_RUN_ID; do
+          gh api -X PATCH \
+            "/repos/${GITHUB_REPOSITORY}/check-runs/${CHECK_RUN_ID}" \
+            -f "conclusion=neutral"
+        done

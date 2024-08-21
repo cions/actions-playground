@@ -1,7 +1,5 @@
 name: "TypeScript Action"
-
 description: "Example TypeScript Action"
-
 author: "cions"
 
 inputs:
@@ -26,6 +24,6 @@ outputs:
 
 runs:
   using: node20
-  pre: dist/pre.mjs
-  main: dist/main.mjs
-  post: dist/post.mjs
+  pre: dist/pre.js
+  main: dist/main.js
+  post: dist/post.js

@@ -14,10 +14,7 @@
     "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "skipLibCheck": true,
-    "paths": {
-      "src/*": ["./src/*"]
-    }
+    "skipLibCheck": true
   },
   "include": ["**/*.ts"]
 }

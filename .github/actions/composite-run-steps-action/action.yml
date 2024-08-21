@@ -1,14 +1,12 @@
 name: "Composite Run Steps Action"
-
 description: "Example Composite Run Steps Action"
-
 author: "cions"
 
 inputs:
-  github-token:
-    description: "GITHUB_TOKEN"
+  input:
+    description: "Action input"
     required: false
-    default: ${{ github.token }}
+    default: "default value"
 
 outputs:
   output:
@@ -25,13 +23,19 @@ runs:
   - name: Print contexts
     uses: cions/actions-playground/.github/actions/typescript-action@master
     env:
+      GITHUB_CONTEXT: ${{ toJSON(github) }}
       ENV_CONTEXT: ${{ toJSON(env) }}
+      VARS_CONTEXT: ${{ toJSON(vars) }}
       JOB_CONTEXT: ${{ toJSON(job) }}
       STEPS_CONTEXT: ${{ toJSON(steps) }}
+      RUNNER_CONTEXT: ${{ toJSON(runner) }}
+      SECRETS_CONTEXT: ${{ toJSON(secrets) }}
+      STRATEGY_CONTEXT: ${{ toJSON(strategy) }}
+      MATRIX_CONTEXT: ${{ toJSON(matrix) }}
+      NEEDS_CONTEXT: ${{ toJSON(needs) }}
       INPUTS_CONTEXT: ${{ toJSON(inputs) }}
     with:
       action: print-contexts
-      contexts: env,job,steps,inputs
   - id: set-output
     shell: bash
     run: echo "output=Composite Run Steps Action output" >> "${GITHUB_OUTPUT}"

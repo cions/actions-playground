@@ -1,15 +1,6 @@
-import * as fs from "node:fs/promises";
-import { pathsToModuleNameMapper } from "ts-jest";
-
-const tsconfig = JSON.parse(
-  await fs.readFile(new URL("./tsconfig.json", import.meta.url)),
-);
+import { createDefaultEsmPreset } from "ts-jest";
 
 export default {
-  preset: "ts-jest",
+  ...createDefaultEsmPreset(),
   resolver: "ts-jest-resolver",
-  testEnvironment: "node",
-  moduleNameMapper: pathsToModuleNameMapper(tsconfig.compilerOptions.paths, {
-    prefix: "<rootDir>/",
-  }),
 };

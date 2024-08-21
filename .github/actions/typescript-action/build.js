@@ -7,7 +7,7 @@ const outDir = url.fileURLToPath(new URL("./dist", import.meta.url));
 
 async function build(sourceFile) {
   const sourcePath = url.fileURLToPath(new URL(sourceFile, import.meta.url));
-  const filename = path.basename(sourceFile).replace(".ts", ".mjs");
+  const filename = path.basename(sourceFile).replace(".ts", ".js");
 
   const { code, map, assets } = await ncc(sourcePath, {
     filename,
@@ -16,17 +16,15 @@ async function build(sourceFile) {
     target: "es2022",
   });
 
-  return Object.assign(
-    Object.fromEntries(
+  return {
+    ...Object.fromEntries(
       Object.entries(assets).map(([name, { source }]) => {
         return [path.join(outDir, name), source];
       }),
     ),
-    {
-      [path.join(outDir, filename)]: code,
-      [path.join(outDir, filename + ".map")]: map,
-    },
-  );
+    [path.join(outDir, filename)]: code,
+    [path.join(outDir, filename + ".map")]: map,
+  };
 }
 
 await fs.rm(outDir, { recursive: true, force: true });

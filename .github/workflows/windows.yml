@@ -102,7 +102,7 @@ jobs:
         execute cmake --build build.ninja --verbose
         execute ./build.ninja/hello-c.exe
         execute ./build.ninja/hello-cpp.exe
-    - name: Upload artifact
+    - name: Upload the artifact
       uses: actions/upload-artifact@v4
       with:
         name: msvc
@@ -140,7 +140,7 @@ jobs:
         execute cmake --build build.msys2 --verbose
         execute ./build.msys2/hello-c
         execute ./build.msys2/hello-cpp
-    - name: Upload artifact
+    - name: Upload the artifact
       uses: actions/upload-artifact@v4
       with:
         name: msys2
@@ -152,7 +152,6 @@ jobs:
     runs-on: windows-latest
 
     strategy:
-      fail-fast: false
       matrix:
         include:
         - { msystem: MINGW64, prefix: mingw-w64-x86_64 }
@@ -160,6 +159,7 @@ jobs:
         - { msystem: UCRT64, prefix: mingw-w64-ucrt-x86_64 }
         - { msystem: CLANG64, prefix: mingw-w64-clang-x86_64 }
         - { msystem: CLANG32, prefix: mingw-w64-clang-i686 }
+      fail-fast: false
 
     defaults:
       run:
@@ -189,7 +189,7 @@ jobs:
         execute cmake --build "${BUILDDIR}" --verbose
         execute ./"${BUILDDIR}"/hello-c
         execute ./"${BUILDDIR}"/hello-cpp
-    - name: Upload artifact
+    - name: Upload the artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.prefix }}

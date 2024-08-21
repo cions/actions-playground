@@ -114,17 +114,23 @@ on:
     - reopened
     - synchronize
     - converted_to_draft
-    - ready_for_review
     - locked
     - unlocked
+    - enqueued
+    - dequeued
+    - milestoned
+    - demilestoned
+    - ready_for_review
     - review_requested
     - review_request_removed
     - auto_merge_enabled
     - auto_merge_disabled
     branches:
     - "**"
+    # branches-ignore: []
     paths:
     - "**"
+    # paths-ignore: []
   pull_request_review:
     types:
     - submitted
@@ -156,15 +162,20 @@ on:
     - auto_merge_disabled
     branches:
     - "**"
+    # branches-ignore: []
     paths:
     - "**"
+    # paths-ignore: []
   push:
     branches:
     - "**"
-    # tags:
-    # - "**"
+    # branches-ignore: []
+    tags:
+    - "**"
+    # tags-ignore: []
     paths:
     - "**"
+    # paths-ignore: []
   registry_package:
     types:
     - published
@@ -227,7 +238,11 @@ on:
         required: false
       log-level:
         type: choice
-        options: [ debug, info, warn, error ]
+        options:
+        - debug
+        - info
+        - warn
+        - error
         description: "log level"
         required: true
         default: warn
@@ -240,8 +255,11 @@ on:
     - completed
     - requested
     - in_progress
-    workflows: [ "Dump Virtual Environment" ]
-    branches: [ $default-branch ]
+    workflows:
+    - "Dump Virtual Environment"
+    branches:
+    - $default-branch
+    # branches-ignore: []
 
 permissions: {}
 

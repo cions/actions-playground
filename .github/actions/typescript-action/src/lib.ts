@@ -1,4 +1,3 @@
-import * as os from "node:os";
 import * as path from "node:path";
 import * as core from "@actions/core";
 import * as github from "@actions/github";
@@ -6,43 +5,35 @@ import * as github from "@actions/github";
 export function printEnvvars(): void {
   const keys = Object.keys(process.env).sort();
   for (const key of keys) {
-    let value = process.env[key] as string;
+    const value = process.env[key] ?? "";
     if (value.split(path.delimiter).every((x) => path.isAbsolute(x))) {
-      value = value.replaceAll(
+      const formatted = value.replaceAll(
         path.delimiter,
-        path.delimiter + os.EOL + " ".repeat(key.length + 1),
+        path.delimiter + "\n" + " ".repeat(key.length + 1),
       );
+      process.stdout.write(`${key}=${formatted}\n`);
+    } else {
+      process.stdout.write(`${key}=${value}\n`);
     }
-    process.stdout.write(`${key}=${value}${os.EOL}`);
   }
 }
 
 export function printContexts(): void {
   const contexts = core.getInput("contexts", { required: true }).split(",");
   for (const name of contexts) {
-    const value = process.env[`${name.toUpperCase()}_CONTEXT`] ?? "null";
-    process.stdout.write(`${name} = ${value}${os.EOL}`);
+    const context: unknown = JSON.parse(process.env[`${name.toUpperCase()}_CONTEXT`] ?? "null");
+    process.stdout.write(`${name} = ${JSON.stringify(context, null, 2)}\n`);
   }
 }
 
 export async function testAction(): Promise<void> {
-  process.stdout.write(`process.version = ${process.version}${os.EOL}`);
-  process.stdout.write(
-    `process.argv0 = ${JSON.stringify(process.argv0)}${os.EOL}`,
-  );
-  process.stdout.write(
-    `process.argv = ${JSON.stringify(process.argv)}${os.EOL}`,
-  );
-  process.stdout.write(
-    `process.execPath = ${JSON.stringify(process.execPath)}${os.EOL}`,
-  );
-  process.stdout.write(
-    `process.execArgv = ${JSON.stringify(process.execArgv)}${os.EOL}`,
-  );
+  process.stdout.write(`process.version = ${process.version}\n`);
+  process.stdout.write(`process.argv0 = ${JSON.stringify(process.argv0)}\n`);
+  process.stdout.write(`process.argv = ${JSON.stringify(process.argv)}\n`);
+  process.stdout.write(`process.execPath = ${JSON.stringify(process.execPath)}\n`);
+  process.stdout.write(`process.execArgv = ${JSON.stringify(process.execArgv)}\n`);
 
-  process.stdout.write(
-    `core.isDebug() = ${core.isDebug().toString()}${os.EOL}`,
-  );
+  process.stdout.write(`core.isDebug() = ${core.isDebug().toString()}\n`);
   core.debug("debug message");
   core.info("info message");
   core.notice("notice message");
@@ -54,11 +45,11 @@ export async function testAction(): Promise<void> {
   core.addPath(`${process.env.GITHUB_WORKSPACE ?? ""}/typescript`);
   core.setSecret("secrettoken");
 
-  process.stdout.write(`STATE_PRE = ${core.getState("STATE_PRE")}${os.EOL}`);
+  core.info(`STATE_PRE = ${core.getState("STATE_PRE")}`);
   core.saveState("STATE_MAIN", "value");
 
   const idToken = await core.getIDToken();
-  process.stdout.write(`core.getIDToken() = ${idToken}${os.EOL}`);
+  core.info(`core.getIDToken() = ${idToken}`);
 
   core.startGroup("Print github.context");
   core.info(JSON.stringify(github.context, null, 2));
