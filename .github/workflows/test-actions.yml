@@ -57,8 +57,6 @@ jobs:
       JOB_ENV: "value"
 
     steps:
-    - name: Run pwd
-      run: pwd
     - name: Checkout
       uses: actions/checkout@v4
       with:
