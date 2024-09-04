@@ -32,6 +32,7 @@ export async function testAction(): Promise<void> {
   process.stdout.write(`process.argv = ${JSON.stringify(process.argv)}\n`);
   process.stdout.write(`process.execPath = ${JSON.stringify(process.execPath)}\n`);
   process.stdout.write(`process.execArgv = ${JSON.stringify(process.execArgv)}\n`);
+  process.stdout.write(`process.cwd() = ${JSON.stringify(process.cwd())}\n`);
 
   process.stdout.write(`core.isDebug() = ${core.isDebug().toString()}\n`);
   core.debug("debug message");
