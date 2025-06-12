@@ -1,0 +1,42 @@
+{
+  "name": "typescript-action",
+  "version": "1.0.0",
+  "description": "Example TypeScript Actions",
+  "homepage": "https://github.com/cions/actions-playground",
+  "license": "MIT",
+  "author": "cions",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cions/actions-playground.git"
+  },
+  "type": "module",
+  "exports": {
+    "./*": "./*"
+  },
+  "scripts": {
+    "update": "npm exec --yes -- npm-check-updates --upgrade --target greatest --pre 0 --peer && npm audit fix && npm install",
+    "fix": "eslint --fix",
+    "lint": "run-p lint:*",
+    "lint:eslint": "eslint",
+    "lint:tsc": "tsc --noEmit",
+    "test": "jest",
+    "build": "node build.js",
+    "all": "run-s lint test build"
+  },
+  "devDependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.1",
+    "@jest/globals": "^30.0.0",
+    "@stylistic/eslint-plugin": "^4.4.1",
+    "@vercel/ncc": "^0.38.3",
+    "eslint": "^9.28.0",
+    "eslint-plugin-jest": "^28.13.3",
+    "globals": "^16.2.0",
+    "jest": "^30.0.0",
+    "npm-run-all2": "^8.0.4",
+    "ts-jest": "^29.4.0",
+    "ts-jest-resolver": "^2.0.1",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.34.0"
+  }
+}

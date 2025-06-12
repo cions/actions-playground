@@ -1,0 +1,19 @@
+name: "Dump environment variables"
+
+description: "Show current environment variables"
+
+author: "cions"
+
+runs:
+  using: composite
+  steps:
+  - name: Dump environment variables
+    shell: python
+    run: |
+      import os
+
+      for name in sorted(os.environ):
+        value = os.environ[name]
+        if all(os.path.isabs(x) for x in value.split(os.pathsep)):
+          value = value.replace(os.pathsep, "\n" + " " * len(name) + os.pathsep)
+        print(name + "=" + value)

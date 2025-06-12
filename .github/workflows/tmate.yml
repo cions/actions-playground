@@ -1,0 +1,25 @@
+name: Tmate
+
+run-name: Tmate
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs-on:
+        type: string
+        description: "Runner Image"
+        required: true
+        default: "ubuntu-latest"
+
+permissions: write-all
+
+jobs:
+  tmate:
+    runs-on: ${{ github.event.inputs.runs-on }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true

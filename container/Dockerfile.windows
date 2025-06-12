@@ -1,0 +1,16 @@
+FROM golang:latest AS build
+
+WORKDIR /go/src/app
+
+COPY . .
+
+RUN go build -o /go/bin/example.exe
+
+
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+COPY --from=build /go/bin/example.exe /
+
+CMD ["/example.exe"]
+
+LABEL org.opencontainers.image.source="https://github.com/cions/actions-playground"

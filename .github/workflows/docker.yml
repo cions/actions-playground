@@ -1,0 +1,101 @@
+name: Docker
+
+run-name: Docker
+
+on: [ push, pull_request, workflow_dispatch ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker-buildx:
+    name: Docker Buildx
+
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKER_IMAGE: ghcr.io/${{ github.actor }}/linux-container
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Run docker version
+      run: docker version
+
+    - name: Run docker system info
+      run: docker system info
+
+    - id: setup-qemu
+      name: Setup QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - id: setup-buildx
+      name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    - id: build-and-push
+      name: Build and Push
+      uses: docker/build-push-action@v6
+      with:
+        context: container
+        platforms: linux/amd64,linux/arm/v7,linux/arm64,linux/ppc64le,linux/s390x
+        load: ${{ github.event_name == 'pull_request' }}
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ env.DOCKER_IMAGE }}:latest
+
+    - name: Run containers
+      env:
+        PLATFORMS: "linux/amd64 linux/arm/v7 linux/arm64 linux/ppc64le linux/s390x"
+      run: |
+        execute() { printf '[%s]%s\n' "command" "$*"; "$@"; }
+        for platform in ${PLATFORMS}; do
+          execute docker run --platform="${platform}" --rm "${DOCKER_IMAGE}:latest"
+        done
+
+    - name: Print context informations
+      uses: cions/actions-playground/.github/actions/dump-contexts@master
+      env:
+        STEPS_CONTEXT: ${{ toJSON(steps) }}
+
+  docker-windows:
+    name: Docker for Windows
+
+    runs-on: windows-latest
+
+    env:
+      DOCKER_IMAGE: ghcr.io/${{ github.actor }}/windows-container
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Run docker version
+      run: docker version
+
+    - name: Run docker system info
+      run: docker system info
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    - name: Build container
+      run: docker build -t ${Env:DOCKER_IMAGE}:latest -f container/Dockerfile.windows container
+
+    - name: Run container
+      run: docker run --rm ${Env:DOCKER_IMAGE}:latest
+
+    - name: Push container
+      run: docker push ${Env:DOCKER_IMAGE}:latest

@@ -1,0 +1,207 @@
+name: Windows
+
+run-name: Windows
+
+on: [ push, pull_request, workflow_dispatch ]
+
+permissions:
+  contents: read
+
+jobs:
+  msvc:
+    name: MSVC
+
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: List Visual Studio installations by vswhere
+      run: vswhere -products *
+
+    - name: Get the latest Visual Studio installation path by vswhere
+      run: vswhere -latest -products * -requires "Microsoft.VisualStudio.Component.VC.Tools.x86.x64" -property installationPath
+
+    - name: List Visual Studio installations by Get-VSSetupInstance
+      run: Get-VSSetupInstance -All | ConvertTo-Json
+
+    - name: Get the latest Visual Studio installation path by Get-VSSetupInstance
+      run: |
+        $installPath = (Get-VSSetupInstance -All | Select-VSSetupInstance -Latest -Product * -Require "Microsoft.VisualStudio.Component.VC.Tools.x86.x64").InstallationPath
+
+        Write-Output "VSINSTALLPATH=$installPath" | Out-File -Append -Encoding UTF8 -FilePath $Env:GITHUB_ENV
+
+    - name: Import Microsoft.VisualStudio.DevShell module
+      run: |
+        $devshellmod = Join-Path -Path $Env:VSINSTALLPATH -ChildPath Common7\Tools\Microsoft.VisualStudio.DevShell.dll
+        Import-Module -Name $devshellmod -PassThru | Format-Table -AutoSize | Out-String -Width 4096 -Stream
+
+    - name: Run VsDevCmd.bat
+      run: |
+        $vsdevcmd = Join-Path -Path $Env:VSINSTALLPATH -ChildPath Common7\Tools\VsDevCmd.bat
+        & $Env:COMSPEC /s /c """$vsdevcmd"" -arch=x64 -host_arch=x64 && set" | Where-Object {
+          $_ -Match '^(\w+)=(.*)$'
+        } | ForEach-Object {
+          $Name, $Value = $Matches[1], $Matches[2]
+          if ((-Not (Test-Path -Path Env:/$Name)) -OR ((Get-Item -Path Env:/$Name).Value -CNE $Value)) {
+            [PSCustomObject]@{
+              Name = $Name;
+              Value = $Value -Replace [IO.Path]::PathSeparator, [Environment]::NewLine;
+            }
+            Write-Output "$Name=$Value" | Out-File -Append -FilePath $Env:GITHUB_ENV -Encoding utf8
+          }
+        } | Format-Table -AutoSize -Wrap | Out-String -Width 4096 -Stream
+
+    - name: List Visual Studio executables
+      run: |
+        Get-ChildItem -Path $Env:VSINSTALLDIR -Recurse |
+          Where-Object Extension -In @($Env:PATHEXT.Split([IO.Path]::PathSeparator) + ".PS1") |
+          ForEach-Object { $_.FullName.Replace($Env:VSINSTALLDIR, "") }
+
+    - name: CMake project (Visual Studio 17 2022, x86)
+      shell: bash
+      run: |
+        execute() { printf '[%s]%s\n' "command" "$*"; "$@"; }
+        execute cmake -S cmake-project -B build.x86 -G "Visual Studio 17 2022" -A Win32
+        execute cmake --build build.x86 --config Release --verbose
+        execute ./build.x86/Release/hello-c
+        execute ./build.x86/Release/hello-cpp
+
+    - name: CMake project (Visual Studio 17 2022, x86_64)
+      shell: bash
+      run: |
+        execute() { printf '[%s]%s\n' "command" "$*"; "$@"; }
+        execute cmake -S cmake-project -B build.x64 -G "Visual Studio 17 2022" -A x64
+        execute cmake --build build.x64 --config Release --verbose
+        execute ./build.x64/Release/hello-c
+        execute ./build.x64/Release/hello-cpp
+
+    - name: CMake project (Visual Studio 17 2022, clang-cl)
+      shell: bash
+      run: |
+        execute() { printf '[%s]%s\n' "command" "$*"; "$@"; }
+        execute cmake -S cmake-project -B build.clang-cl -G "Visual Studio 17 2022" -T clangcl
+        execute cmake --build build.clang-cl --config Release --verbose
+        execute ./build.clang-cl/Release/hello-c.exe
+        execute ./build.clang-cl/Release/hello-cpp.exe
+
+    - name: CMake project (NMake)
+      shell: bash
+      run: |
+        execute() { printf '[%s]%s\n' "command" "$*"; "$@"; }
+        execute cmake -S cmake-project -B build.nmake -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
+        execute cmake --build build.nmake --verbose
+        execute ./build.nmake/hello-c.exe
+        execute ./build.nmake/hello-cpp.exe
+
+    - name: CMake project (Ninja)
+      shell: bash
+      run: |
+        execute() { printf '[%s]%s\n' "command" "$*"; "$@"; }
+        execute cmake -S cmake-project -B build.ninja -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+        execute cmake --build build.ninja --verbose
+        execute ./build.ninja/hello-c.exe
+        execute ./build.ninja/hello-cpp.exe
+
+    - name: Upload the artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: msvc
+        path: build.*
+
+  msys2:
+    name: MSYS2
+
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MSYS
+        update: true
+        install: >-
+          msys2-devel
+          make
+          cmake
+
+    - name: Print environment variables
+      run: typeset -px
+
+    - name: Print predefined macros
+      run: cc -dM -E -x c /dev/null | sort
+
+    - name: CMake project
+      run: |
+        execute() { printf '[%s]%s\n' "command" "$*"; "$@"; }
+        execute cmake -S cmake-project -B build.msys2 -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
+        execute cmake --build build.msys2 --verbose
+        execute ./build.msys2/hello-c
+        execute ./build.msys2/hello-cpp
+
+    - name: Upload the artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: msys2
+        path: build.*
+
+  mingw-w64:
+    name: ${{ matrix.msystem }}
+
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        include:
+        - { msystem: MINGW64, prefix: mingw-w64-x86_64 }
+        - { msystem: UCRT64, prefix: mingw-w64-ucrt-x86_64 }
+        - { msystem: CLANG64, prefix: mingw-w64-clang-x86_64 }
+      fail-fast: false
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ matrix.msystem }}
+        update: true
+        install: >-
+          ${{ matrix.prefix }}-toolchain
+          ${{ matrix.prefix }}-cmake
+
+    - name: Print environment variables
+      run: typeset -px
+
+    - name: Print predefined macros
+      run: cc -dM -E -x c /dev/null | sort
+
+    - name: CMake project
+      env:
+        BUILDDIR: build.${{ matrix.prefix }}
+      run: |
+        execute() { printf '[%s]%s\n' "command" "$*"; "$@"; }
+        execute cmake -S cmake-project -B "${BUILDDIR}" -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+        execute cmake --build "${BUILDDIR}" --verbose
+        execute ./"${BUILDDIR}"/hello-c
+        execute ./"${BUILDDIR}"/hello-cpp
+
+    - name: Upload the artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.prefix }}
+        path: |
+          build.*

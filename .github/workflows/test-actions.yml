@@ -1,0 +1,607 @@
+name: Test Actions
+
+run-name: Test Actions
+
+on: [ push, pull_request, workflow_dispatch ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  attestations: read
+  checks: read
+  contents: read
+  deployments: read
+  discussions: read
+  id-token: write
+  issues: read
+  models: read
+  packages: read
+  pages: read
+  pull-requests: read
+  repository-projects: read
+  security-events: read
+  statuses: read
+
+env:
+  WORKFLOW_ENV: "value"
+
+defaults:
+  run:
+    shell: bash
+    working-directory: .
+
+jobs:
+  actions:
+    name: Test Actions
+
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: ${{ github.workflow }}-actions-${{ github.ref }}
+      cancel-in-progress: true
+
+    timeout-minutes: 10
+
+    permissions: write-all
+
+    outputs:
+      bashoutput: ${{ steps.bashaction.outputs.output }}
+      pwshoutput: ${{ steps.pwshaction.outputs.output }}
+      pyoutput: ${{ steps.pyaction.outputs.output }}
+      ghsoutput: ${{ steps.ghsaction.outputs.output }}
+      tsoutput: ${{ steps.tsaction.outputs.output }}
+      dockeroutput: ${{ steps.dockeraction.outputs.output }}
+      crsoutput: ${{ steps.crsaction.outputs.output }}
+
+    env:
+      JOB_ENV: "value"
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ github.repository }}
+        ref: ${{ github.ref }}
+        path: "."
+        submodules: "recursive"
+        token: ${{ github.token }}
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.x"
+
+    - id: bashaction
+      name: Bash Action
+      shell: bash
+      run: |
+        echo -n "Current directory: "; pwd
+
+        echo "::notice title=bash notice::notice message"
+        echo "::warning title=bash warning::warning message"
+        echo "::error title=bash error::error message"
+
+        {
+          echo "output<<EOF"
+          echo "Bash Action output"
+          echo "EOF"
+        } >> "${GITHUB_OUTPUT}"
+
+        echo "BASH_ENV=value" >> "${GITHUB_ENV}"
+
+        echo "${GITHUB_WORKSPACE}/bash" >> "${GITHUB_PATH}"
+
+        cat <<EOF >> "${GITHUB_STEP_SUMMARY}"
+        ## Bash EOF-marker Generators
+        ### \`\$(</proc/sys/kernel/random/uuid)\`
+        $(</proc/sys/kernel/random/uuid)
+
+        ### \`\$(uuidgen)\`
+        $(uuidgen)
+
+        ### \`\$(openssl rand -hex 16)\`
+        $(openssl rand -hex 16)
+
+        ### \`\$(python -c 'import secrets; print(secrets.token_hex(16))')\`
+        $(python -c 'import secrets; print(secrets.token_hex(16))')
+
+        ### \`\$(ruby -r securerandom -e 'puts SecureRandom.hex')\`
+        $(ruby -r securerandom -e 'puts SecureRandom.hex')
+
+        ### \`\$(node -p 'crypto.randomBytes(16).toString("hex")')\`
+        $(node -p 'crypto.randomBytes(16).toString("hex")')
+
+        ### \`\$(node -p 'crypto.randomUUID()')\`
+        $(node -p 'crypto.randomUUID()')
+
+        EOF
+
+    - id: pwshaction
+      name: PowerShell Action
+      shell: pwsh
+      working-directory: ./container
+      run: |
+        Get-Location
+
+        Write-Output "::notice title=pwsh notice::notice message"
+        Write-Output "::warning title=pwsh warning::warning message"
+        Write-Output "::error title=pwsh error::error message"
+
+        Write-Output @"
+        output<<EOF
+        PowerShell Action output
+        EOF
+        "@ | Out-File -Append -Encoding UTF8 -FilePath $Env:GITHUB_OUTPUT
+
+        Write-Output "PWSH_ENV=value" | Out-File -Append -Encoding UTF8 -FilePath $Env:GITHUB_ENV
+
+        Write-Output "$Env:GITHUB_WORKSPACE/pwsh" | Out-File -Append -Encoding UTF8 -FilePath $Env:GITHUB_PATH
+
+        Write-Output @"
+        ## PowerShell EOF-marker Generators
+        ### ```$(New-Guid)``
+        $(New-Guid)
+
+        ### ```$([Guid]::NewGuid())``
+        $([Guid]::NewGuid())
+
+        ### ```$([Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(16)))``
+        $([Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(16)))
+
+        ### ```$([Convert]::ToHexString((Get-Random -Maximum 256 -Count 16)))``
+        $([Convert]::ToHexString((Get-Random -Maximum 256 -Count 16)))
+        "@ | Out-File -Append -Encoding UTF8 -FilePath $Env:GITHUB_STEP_SUMMARY
+
+    - id: pyaction
+      name: Python Action
+      shell: python
+      run: |
+        import sys
+        import os
+
+        print(f"sys.version = {sys.version}")
+        print(f"sys.executable = {sys.executable}")
+        print(f"sys.argv = {sys.argv}")
+        print(f"os.getcwd() = {os.getcwd()}")
+
+        print("::notice title=python notice::notice message")
+        print("::warning title=python warning::warning message")
+        print("::error title=python error::error message")
+
+        with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
+          print("output<<EOF", file=f)
+          print("Python Action output", file=f)
+          print("EOF", file=f)
+
+        with open(os.getenv("GITHUB_ENV"), "a") as f:
+          print("PYTHON_ENV=value", file=f)
+
+        with open(os.getenv("GITHUB_PATH"), "a") as f:
+          print(os.path.join(os.getenv("GITHUB_WORKSPACE"), "python"), file=f)
+
+    - id: ghsaction
+      name: GitHub Script Action
+      uses: actions/github-script@v7
+      with:
+        result-encoding: string
+        script: |
+          console.log(`context = ${JSON.stringify(context, null, 2)}`);
+          console.log(`core.isDebug() = ${core.isDebug()}`);
+
+          core.debug("debug message");
+          core.info("info message");
+          core.notice("notice message");
+          core.warning("warning message");
+          core.error("error message");
+
+          core.setOutput("output", "GitHub Script Action output");
+          core.exportVariable("GITHUB_SCRIPT_ENV", "value");
+          core.addPath(`${process.env.GITHUB_WORKSPACE}/github-script`);
+
+          await core.group("octokit", async () => {
+            const repo = await github.rest.repos.get(context.repo);
+            console.log(`repo = ${JSON.stringify(repo, null, 2)}`);
+          });
+
+          return "Return value";
+
+    - id: tsaction
+      name: TypeScript Action
+      uses: cions/actions-playground/.github/actions/typescript-action@master
+
+    - id: dockeraction
+      name: Docker Action
+      uses: cions/actions-playground/.github/actions/docker-action@master
+      with:
+        input: action input
+
+    - name: Docker Action 2
+      uses: docker://ghcr.io/cions/docker-action:latest
+      with:
+        args: action input
+
+    - id: crsaction
+      name: Composite Run Steps Action
+      uses: cions/actions-playground/.github/actions/composite-run-steps-action@master
+      with:
+        input: action input
+
+    - name: Print environment variables
+      uses: cions/actions-playground/.github/actions/dump-envvars@master
+
+    - name: Print context informations
+      uses: cions/actions-playground/.github/actions/dump-contexts@master
+      env:
+        GITHUB_CONTEXT: ${{ toJSON(github) }}
+        ENV_CONTEXT: ${{ toJSON(env) }}
+        VARS_CONTEXT: ${{ toJSON(vars) }}
+        JOB_CONTEXT: ${{ toJSON(job) }}
+        STEPS_CONTEXT: ${{ toJSON(steps) }}
+        RUNNER_CONTEXT: ${{ toJSON(runner) }}
+        SECRETS_CONTEXT: ${{ toJSON(secrets) }}
+        STRATEGY_CONTEXT: ${{ toJSON(strategy) }}
+        MATRIX_CONTEXT: ${{ toJSON(matrix) }}
+        NEEDS_CONTEXT: ${{ toJSON(needs) }}
+        INPUTS_CONTEXT: ${{ toJSON(inputs) }}
+
+  container:
+    name: Run in a conatiner
+
+    runs-on: ubuntu-latest
+
+    container:
+      image: docker:latest
+      env:
+        CONTAINER_ENV: value
+      ports:
+      - "80"
+      volumes:
+      - data:/data
+      options: --cpus 2
+
+    services:
+      nginx:
+        image: nginx:latest
+        env:
+          SERVICE_ENV: value
+        ports:
+        - "8080:80"
+        volumes:
+        - data:/data
+        options: --cpus 1
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: .
+
+    env:
+      JOB_ENV: value
+
+    steps:
+    - name: Install packages
+      shell: sh
+      run: apk add --no-cache bash curl git jq python3 util-linux
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Run docker version
+      run: docker version
+
+    - name: Run docker inspect
+      run: docker container ls -q | xargs -rn1 docker container inspect
+
+    - name: Use services
+      run: curl -fsSL http://nginx/
+
+    - name: Run findmnt
+      run: findmnt
+
+    - name: TypeScript Action
+      uses: cions/actions-playground/.github/actions/typescript-action@master
+
+    - name: Docker Action
+      uses: cions/actions-playground/.github/actions/docker-action@master
+      with:
+        input: action input
+
+    - name: Docker Action 2
+      uses: docker://ghcr.io/cions/docker-action:latest
+      with:
+        args: action input
+
+    - name: Composite Run Steps Action
+      uses: cions/actions-playground/.github/actions/composite-run-steps-action@master
+      with:
+        input: action input
+
+    - name: Print environment variables
+      uses: cions/actions-playground/.github/actions/dump-envvars@master
+
+    - name: Print context informations
+      uses: cions/actions-playground/.github/actions/dump-contexts@master
+      env:
+        GITHUB_CONTEXT: ${{ toJSON(github) }}
+        ENV_CONTEXT: ${{ toJSON(env) }}
+        VARS_CONTEXT: ${{ toJSON(vars) }}
+        JOB_CONTEXT: ${{ toJSON(job) }}
+        STEPS_CONTEXT: ${{ toJSON(steps) }}
+        RUNNER_CONTEXT: ${{ toJSON(runner) }}
+        SECRETS_CONTEXT: ${{ toJSON(secrets) }}
+        STRATEGY_CONTEXT: ${{ toJSON(strategy) }}
+        MATRIX_CONTEXT: ${{ toJSON(matrix) }}
+        NEEDS_CONTEXT: ${{ toJSON(needs) }}
+        INPUTS_CONTEXT: ${{ toJSON(inputs) }}
+
+  reusable-workflow:
+    name: Reusable Workflow
+    uses: cions/actions-playground/.github/workflows/dump-events.yml@master
+    with:
+      string: "value"
+    secrets:
+      token: ${{ github.token }}
+
+  services:
+    name: Use Services
+
+    runs-on: ubuntu-latest
+
+    services:
+      nginx:
+        image: nginx:latest
+        ports:
+        - "8888:80"
+
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_PASSWORD: "postgres"
+        ports:
+        - "5432:5432"
+        volumes:
+        - pgdata:/var/lib/postgresql/data
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:latest
+        ports:
+        - "6379:6379"
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Run docker version
+      run: docker version
+
+    - name: Run docker inspect
+      run: docker container ls -q | xargs -rn1 docker container inspect
+
+    - name: Use services
+      run: curl -fsSL http://localhost:8888/ | tee nginx.html
+
+    - id: upload
+      name: Upload the artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nginx
+        path: nginx.html
+
+    - name: Print context informations
+      uses: cions/actions-playground/.github/actions/dump-contexts@master
+      env:
+        JOB_CONTEXT: ${{ toJSON(job) }}
+        STEPS_CONTEXT: ${{ toJSON(steps) }}
+
+  consumer:
+    name: Depends on other jobs
+
+    runs-on: ubuntu-latest
+
+    needs:
+    - actions
+    - container
+    - reusable-workflow
+    - services
+
+    steps:
+    - id: download
+      name: Download the artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: nginx
+        path: nginx
+
+    - name: Print the artifact
+      run: cat nginx/nginx.html
+
+    - name: Print context informations
+      uses: cions/actions-playground/.github/actions/dump-contexts@master
+      env:
+        STEPS_CONTEXT: ${{ toJSON(steps) }}
+        NEEDS_CONTEXT: ${{ toJSON(needs) }}
+
+  github-pages:
+    name: GitHub Pages
+
+    runs-on: ubuntu-latest
+
+    needs: [ services ]
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+    - name: Download the artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: nginx
+
+    - name: Build the pages artifact
+      run: install -D nginx.html build/index.html
+
+    - name: Upload the pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: build
+
+    - id: deploy
+      name: Deploy to GitHub Pages
+      uses: actions/deploy-pages@v4
+
+  expressions:
+    name: Test expressions
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - id: values
+      name: Set values
+      uses: actions/github-script@v7
+      with:
+        script: |
+          core.setOutput("string", "\t\n\r\"'\\");
+          core.setOutput("json", '[{"name":"a"},{"name":"b"},{"name":"c"}]');
+
+    - name: Run expression tests
+      shell: bash
+      env:
+        VAL_NULL: ${{ null }}
+        VAL_TRUE: ${{ true }}
+        VAL_FALSE: ${{ false }}
+        VAL_NUMBER1: ${{ 42 }}
+        VAL_NUMBER2: ${{ 0xdeadbeef }}
+        VAL_NUMBER3: ${{ 3.141592653589793 }}
+        VAL_NUMBER4: ${{ 6.022e23 }}
+        VAL_STRING1: ${{ 'Hello, GitHub Action''s world!' }}
+        VAL_STRING2: ${{ steps.values.outputs.string }}
+        VAL_MISSING_PROP1: ${{ runner.missing }}
+        VAL_MISSING_PROP2: ${{ runner.missing || 'default' }}
+        VAL_MISSING_PROP3: ${{ toJSON(runner.missing) }}
+        VAL_OBJFILTER1: ${{ toJSON(fromJson(steps.values.outputs.json).*) }}
+        VAL_OBJFILTER2: ${{ toJSON(fromJson(steps.values.outputs.json).*.name) }}
+        VAL_OBJFILTER3: ${{ toJSON(fromJson(steps.values.outputs.json).*.value) }}
+        VAL_OBJFILTER4: ${{ toJSON(steps.*) }}
+        VAL_OBJFILTER5: ${{ toJSON(steps.*.outputs) }}
+        VAL_OBJFILTER6: ${{ toJSON(steps.*.outputs.*) }}
+        VAL_CONJUNCTION: ${{ 1 && 2 }}
+        VAL_HASHFILES: ${{ hashFiles('**') }}
+      run: |
+        printf 'NULL: %q\n' "${VAL_NULL}"
+        printf 'TRUE: %q\n' "${VAL_TRUE}"
+        printf 'FALSE: %q\n' "${VAL_FALSE}"
+        printf 'NUMBER1: %q\n' "${VAL_NUMBER1}"
+        printf 'NUMBER2: %q\n' "${VAL_NUMBER2}"
+        printf 'NUMBER3: %q\n' "${VAL_NUMBER3}"
+        printf 'NUMBER4: %q\n' "${VAL_NUMBER4}"
+        printf 'STRING1: %q\n' "${VAL_STRING1}"
+        printf 'STRING2: %q\n' "${VAL_STRING2}"
+        printf 'MISSING_PROP1: %q\n' "${VAL_MISSING_PROP1}"
+        printf 'MISSING_PROP2: %q\n' "${VAL_MISSING_PROP2}"
+        printf 'MISSING_PROP3: %q\n' "${VAL_MISSING_PROP3}"
+        printf 'OBJFILTER1: '; jq -CSn --jsonargs '$ARGS.positional[]' "${VAL_OBJFILTER1}"
+        printf 'OBJFILTER2: '; jq -CSn --jsonargs '$ARGS.positional[]' "${VAL_OBJFILTER2}"
+        printf 'OBJFILTER3: '; jq -CSn --jsonargs '$ARGS.positional[]' "${VAL_OBJFILTER3}"
+        printf 'OBJFILTER4: '; jq -CSn --jsonargs '$ARGS.positional[]' "${VAL_OBJFILTER4}"
+        printf 'OBJFILTER5: '; jq -CSn --jsonargs '$ARGS.positional[]' "${VAL_OBJFILTER5}"
+        printf 'OBJFILTER6: '; jq -CSn --jsonargs '$ARGS.positional[]' "${VAL_OBJFILTER6}"
+        printf 'CONJUNCTION: %q\n' "${VAL_CONJUNCTION}"
+        printf 'HASHFILES: %q\n' "${VAL_HASHFILES}"
+
+  failing-job-1:
+    name: Failing Job 1
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 10
+    outputs:
+      output: ${{ steps.set-output.outputs.output }}
+    steps:
+    - id: set-output
+      name: Set output
+      uses: actions/github-script@v7
+      continue-on-error: true
+      timeout-minutes: 1
+      with:
+        script: |
+          core.setOutput("output", "value");
+          core.setFailed("Action failed");
+    - if: success()
+      run: echo "Run on success"
+    - if: failure()
+      run: echo "Run on failure"
+    - if: always()
+      run: echo "Run always"
+    - name: Print context informations
+      if: always()
+      uses: cions/actions-playground/.github/actions/dump-contexts@master
+      env:
+        GITHUB_CONTEXT: ${{ toJSON(github) }}
+        JOB_CONTEXT: ${{ toJSON(job) }}
+
+  failing-job-2:
+    name: Failing Job 2
+    runs-on: ubuntu-latest
+    needs: [ failing-job-1 ]
+    steps:
+    - name: Print context informations
+      uses: cions/actions-playground/.github/actions/dump-contexts@master
+      env:
+        JOB_CONTEXT: ${{ toJSON(job) }}
+        NEEDS_CONTEXT: ${{ toJSON(needs) }}
+
+  failing-job-3:
+    name: Failing Job 3
+    runs-on: ubuntu-latest
+    needs: [ failing-job-1 ]
+    if: needs.failing-job-1.result == 'success'
+    steps:
+    - name: Print context informations
+      uses: cions/actions-playground/.github/actions/dump-contexts@master
+      env:
+        JOB_CONTEXT: ${{ toJSON(job) }}
+        NEEDS_CONTEXT: ${{ toJSON(needs) }}
+
+  failing-job-4:
+    name: Failing Job 4
+    runs-on: ubuntu-latest
+    needs: [ failing-job-1 ]
+    if: needs.failing-job-1.result == 'failure'
+    steps:
+    - name: Print context informations
+      uses: cions/actions-playground/.github/actions/dump-contexts@master
+      env:
+        JOB_CONTEXT: ${{ toJSON(job) }}
+        NEEDS_CONTEXT: ${{ toJSON(needs) }}
+
+  failing-job-5:
+    name: Failing Job 5
+    runs-on: ubuntu-latest
+    needs:
+    - failing-job-2
+    - failing-job-3
+    - failing-job-4
+    if: always()
+    steps:
+    - name: Print context informations
+      uses: cions/actions-playground/.github/actions/dump-contexts@master
+      env:
+        JOB_CONTEXT: ${{ toJSON(job) }}
+        NEEDS_CONTEXT: ${{ toJSON(needs) }}

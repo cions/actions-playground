@@ -1,0 +1,45 @@
+name: "Dump context informations"
+
+description: "Show current context informations"
+
+author: "cions"
+
+runs:
+  using: composite
+  steps:
+  - name: Dump context information
+    shell: bash
+    run: |
+      if [[ -n "${GITHUB_CONTEXT+set}" ]]; then
+        echo -n "github = "; echo "${GITHUB_CONTEXT}" | jq -CS '.'
+      fi
+      if [[ -n "${ENV_CONTEXT+set}" ]]; then
+        echo -n "env = "; echo "${ENV_CONTEXT}" | jq -CS '.'
+      fi
+      if [[ -n "${VARS_CONTEXT+set}" ]]; then
+        echo -n "vars = "; echo "${VARS_CONTEXT}" | jq -CS '.'
+      fi
+      if [[ -n "${JOB_CONTEXT+set}" ]]; then
+        echo -n "job = "; echo "${JOB_CONTEXT}" | jq -CS '.'
+      fi
+      if [[ -n "${STEPS_CONTEXT+set}" ]]; then
+        echo -n "steps = "; echo "${STEPS_CONTEXT}" | jq -CS '.'
+      fi
+      if [[ -n "${RUNNER_CONTEXT+set}" ]]; then
+        echo -n "runner = "; echo "${RUNNER_CONTEXT}" | jq -CS '.'
+      fi
+      if [[ -n "${SECRETS_CONTEXT+set}" ]]; then
+        echo -n "secrets = "; echo "${SECRETS_CONTEXT}" | jq -CS '.'
+      fi
+      if [[ -n "${STRATEGY_CONTEXT+set}" ]]; then
+        echo -n "strategy = "; echo "${STRATEGY_CONTEXT}" | jq -CS '.'
+      fi
+      if [[ -n "${MATRIX_CONTEXT+set}" ]]; then
+        echo -n "matrix = "; echo "${MATRIX_CONTEXT}" | jq -CS '.'
+      fi
+      if [[ -n "${NEEDS_CONTEXT+set}" ]]; then
+        echo -n "needs = "; echo "${NEEDS_CONTEXT}" | jq -CS '.'
+      fi
+      if [[ -n "${INPUTS_CONTEXT+set}" ]]; then
+        echo -n "inputs = "; echo "${INPUTS_CONTEXT}" | jq -CS '.'
+      fi

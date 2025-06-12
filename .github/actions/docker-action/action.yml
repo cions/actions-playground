@@ -1,0 +1,21 @@
+name: "Docker Action"
+
+description: "Example Docker Action"
+
+author: "cions"
+
+inputs:
+  input:
+    description: "Action input"
+    required: false
+    default: "default value"
+
+outputs:
+  output:
+    description: "Action output"
+
+runs:
+  using: docker
+  image: Dockerfile
+  args:
+  - ${{ inputs.input }}
