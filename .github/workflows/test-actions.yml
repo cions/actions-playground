@@ -61,7 +61,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         repository: ${{ github.repository }}
         ref: ${{ github.ref }}
@@ -70,7 +70,7 @@ jobs:
         token: ${{ github.token }}
 
     - name: Setup Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: "3.x"
 
@@ -184,7 +184,7 @@ jobs:
 
     - id: ghsaction
       name: GitHub Script Action
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       with:
         result-encoding: string
         script: |
@@ -287,7 +287,7 @@ jobs:
       run: apk add --no-cache bash curl git jq python3 util-linux
 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Run docker version
       run: docker version
@@ -417,7 +417,7 @@ jobs:
     steps:
     - id: download
       name: Download the artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: nginx
         path: nginx
@@ -448,7 +448,7 @@ jobs:
 
     steps:
     - name: Download the artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: nginx
 
@@ -456,7 +456,7 @@ jobs:
       run: install -D nginx.html build/index.html
 
     - name: Upload the pages artifact
-      uses: actions/upload-pages-artifact@v3
+      uses: actions/upload-pages-artifact@v4
       with:
         path: build
 
@@ -471,11 +471,11 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - id: values
       name: Set values
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       with:
         script: |
           core.setOutput("string", "\t\n\r\"'\\");
@@ -536,7 +536,7 @@ jobs:
     steps:
     - id: set-output
       name: Set output
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       continue-on-error: true
       timeout-minutes: 1
       with:
