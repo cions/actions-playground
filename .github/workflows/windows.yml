@@ -15,7 +15,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: List Visual Studio installations by vswhere
       run: vswhere -products *
@@ -105,7 +105,7 @@ jobs:
         execute ./build.ninja/hello-cpp.exe
 
     - name: Upload the artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: msvc
         path: build.*
@@ -121,7 +121,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
@@ -148,7 +148,7 @@ jobs:
         execute ./build.msys2/hello-cpp
 
     - name: Upload the artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: msys2
         path: build.*
@@ -172,7 +172,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
@@ -200,7 +200,7 @@ jobs:
         execute ./"${BUILDDIR}"/hello-cpp
 
     - name: Upload the artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ matrix.prefix }}
         path: |
