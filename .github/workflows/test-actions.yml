@@ -504,6 +504,12 @@ jobs:
         VAL_OBJFILTER6: ${{ toJSON(steps.*.outputs.*) }}
         VAL_CONJUNCTION: ${{ 1 && 2 }}
         VAL_HASHFILES: ${{ hashFiles('**') }}
+        VAL_CASE: ${{ case(
+            github.ref == 'refs/heads/master', 'production',
+            github.ref == 'refs/heads/staging', 'staging',
+            startsWith(github.ref, 'refs/heads/feature/'), 'development',
+            'unknown'
+          ) }}
       run: |
         printf 'NULL: %q\n' "${VAL_NULL}"
         printf 'TRUE: %q\n' "${VAL_TRUE}"
@@ -525,6 +531,7 @@ jobs:
         printf 'OBJFILTER6: '; jq -CSn --jsonargs '$ARGS.positional[]' "${VAL_OBJFILTER6}"
         printf 'CONJUNCTION: %q\n' "${VAL_CONJUNCTION}"
         printf 'HASHFILES: %q\n' "${VAL_HASHFILES}"
+        printf 'CASE: %q\n' "${VAL_CASE}"
 
   failing-job-1:
     name: Failing Job 1
