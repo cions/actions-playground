@@ -1,10 +1,11 @@
+import { defineConfig } from "eslint/config";
 import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import stylistic from "@stylistic/eslint-plugin";
 import jestPlugin from "eslint-plugin-jest";
 import globals from "globals";
 
-export default [
+export default defineConfig([
   {
     ignores: ["dist/**"],
   },
@@ -48,4 +49,4 @@ export default [
     files: ["tests/**.test.ts"],
     ...jestPlugin.configs["flat/recommended"],
   },
-];
+]);
