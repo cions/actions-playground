@@ -11,7 +11,7 @@ jobs:
   msvc:
     name: MSVC
 
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
 
     steps:
     - name: Checkout
@@ -59,29 +59,29 @@ jobs:
           Where-Object Extension -In @($Env:PATHEXT.Split([IO.Path]::PathSeparator) + ".PS1") |
           ForEach-Object { $_.FullName.Replace($Env:VSINSTALLDIR, "") }
 
-    - name: CMake project (Visual Studio 17 2022, x86)
+    - name: CMake project (Visual Studio 18 2026, x86)
       shell: bash
       run: |
         execute() { printf '[%s]%s\n' "command" "$*"; "$@"; }
-        execute cmake -S cmake-project -B build.x86 -G "Visual Studio 17 2022" -A Win32
+        execute cmake -S cmake-project -B build.x86 -G "Visual Studio 18 2026" -A Win32
         execute cmake --build build.x86 --config Release --verbose
         execute ./build.x86/Release/hello-c
         execute ./build.x86/Release/hello-cpp
 
-    - name: CMake project (Visual Studio 17 2022, x86_64)
+    - name: CMake project (Visual Studio 18 2026, x86_64)
       shell: bash
       run: |
         execute() { printf '[%s]%s\n' "command" "$*"; "$@"; }
-        execute cmake -S cmake-project -B build.x64 -G "Visual Studio 17 2022" -A x64
+        execute cmake -S cmake-project -B build.x64 -G "Visual Studio 18 2026" -A x64
         execute cmake --build build.x64 --config Release --verbose
         execute ./build.x64/Release/hello-c
         execute ./build.x64/Release/hello-cpp
 
-    - name: CMake project (Visual Studio 17 2022, clang-cl)
+    - name: CMake project (Visual Studio 18 2026, clang-cl)
       shell: bash
       run: |
         execute() { printf '[%s]%s\n' "command" "$*"; "$@"; }
-        execute cmake -S cmake-project -B build.clang-cl -G "Visual Studio 17 2022" -T clangcl
+        execute cmake -S cmake-project -B build.clang-cl -G "Visual Studio 18 2026" -T clangcl
         execute cmake --build build.clang-cl --config Release --verbose
         execute ./build.clang-cl/Release/hello-c.exe
         execute ./build.clang-cl/Release/hello-cpp.exe
