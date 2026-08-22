@@ -7,7 +7,7 @@ COPY . .
 RUN go build -o /go/bin/example.exe
 
 
-FROM mcr.microsoft.com/windows/servercore:ltsc2022
+FROM mcr.microsoft.com/windows/servercore:ltsc2025
 
 COPY --from=build /go/bin/example.exe /
 

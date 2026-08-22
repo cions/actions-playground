@@ -7,7 +7,7 @@ COPY . .
 RUN go build -o /go/bin/example
 
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
 
 COPY --from=build /go/bin/example /
 
